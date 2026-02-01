@@ -1,0 +1,65 @@
+/* ISO PILLAR ANIMATION */
+.iso-pillar {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    transform-style: preserve-3d;
+}
+
+/* On hover, move the ENTIRE pillar up */
+.iso-block-wrapper:hover .iso-pillar {
+    transform: translateZ(15px);
+}
+
+/* Enhance shadows on hover */
+.iso-block-wrapper:hover .iso-pillar>div:first-child {
+    box-shadow: 0 0 15px var(--glow-color, rgba(74, 222, 128, 0.4));
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.8);
+    border-radius: 4px;
+}
+
+.stat-highlight {
+    color: #4ade80 !important;
+    text-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+}
+
+.stat-item h4 {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.stat-item .value {
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: #fff;
+    line-height: 1;
+}
+
+.stat-item .meta {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* Tooltip Animation */
+.tooltip-container {
+    transition: opacity 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+    white-space: nowrap;
+}

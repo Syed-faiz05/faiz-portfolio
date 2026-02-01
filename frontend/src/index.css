@@ -1,1 +1,95 @@
 @import "tailwindcss";
+
+* {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+        monospace;
+}
+
+/* Scroll Animation */
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(10px);
+    }
+}
+
+.scroll-indicator {
+    animation: bounce 2s infinite;
+}
+
+/* Modern Mouse Scroll Animation */
+@keyframes scroll-drop {
+    0% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        height: 6px;
+    }
+
+    40% {
+        height: 10px;
+    }
+
+    100% {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+        height: 4px;
+    }
+}
+
+.mouse-scroll {
+    width: 24px;
+    height: 40px;
+    border: 2px solid rgba(148, 163, 184, 0.4);
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.mouse-scroll-wheel {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 6px;
+    background-color: #22d3ee;
+    border-radius: 2px;
+    animation: scroll-drop 1.5s infinite cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Star Twinkle Animation */
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+.animate-twinkle {
+    animation: twinkle 3s ease-in-out infinite;
+}
