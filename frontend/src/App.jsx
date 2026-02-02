@@ -13,6 +13,7 @@ import AdminLayout from './admin/AdminLayout';
 import Dashboard from './admin/Dashboard';
 import ProjectManager from './admin/ProjectManager';
 import SkillManager from './admin/SkillManager';
+import ProfileManager from './admin/ProfileManager';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="projects" element={<ProjectManager />} />
           <Route path="skills" element={<SkillManager />} />
+          <Route path="profile" element={<ProfileManager />} />
         </Route>
 
         {/* Public Routes - Main Layout */}

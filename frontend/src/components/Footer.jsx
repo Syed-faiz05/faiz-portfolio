@@ -5,7 +5,7 @@ const Footer = () => {
         github: 'https://github.com/Syed-faiz05',
         linkedin: 'https://www.linkedin.com/in/syed-faiz-547a2a2a4/',
         leetcode: 'https://leetcode.com/u/Syed_Faiz05/',
-        email: 'syedfaiz05@example.com'
+        email: 'syedfaiz052005@gmail.com'
     };
 
     return (

@@ -5,7 +5,7 @@ const ContactPage = () => {
     const socialLinks = {
         github: 'https://github.com/Syed-faiz05',
         linkedin: 'https://www.linkedin.com/in/syed-faiz-547a2a2a4/',
-        email: 'syedfaiz052004@gmail.com'
+        email: 'syedfaiz052005@gmail.com'
     };
 
     return (

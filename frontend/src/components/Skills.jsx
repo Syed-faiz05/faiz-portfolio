@@ -17,7 +17,7 @@ const Skills = () => {
 
     const fetchSkills = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/skills');
+            const res = await fetch('/api/skills');
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
                 setSkills(data);

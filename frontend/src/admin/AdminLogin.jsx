@@ -17,6 +17,14 @@ const AdminLogin = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
+
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                console.error("Non-JSON response:", text);
+                throw new Error("Received HTML instead of JSON. Backend might be down or URL is wrong.");
+            }
+
             const data = await res.json();
 
             if (res.ok) {
@@ -27,7 +35,7 @@ const AdminLogin = () => {
             }
         } catch (err) {
             console.error("Login Error:", err);
-            setError(err.message || 'Server connection failed. Is the backend running?');
+            setError(err.message || 'Server connection failed.');
         }
     };
 

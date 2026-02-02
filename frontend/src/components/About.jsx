@@ -1,6 +1,26 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const About = () => {
+    const [profile, setProfile] = useState(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch('/api/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    setProfile(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile", error);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const bio = profile?.bio || "I'm a passionate developer who loves building things for the web.";
+
     return (
         <section id="about" className="py-20 bg-slate-900/50 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -11,9 +31,9 @@ const About = () => {
                     viewport={{ once: true }}
                     className="text-center mb-12"
                 >
-                    <h2 className="text-3xl font-bold text-blue-500">About Me</h2>
+                    <h2 className="text-3xl font-bold text-cyan-400">About Me</h2>
                     <p className="mt-4 text-xl text-gray-300 max-w-3xl mx-auto">
-                        I'm a passionate developer who loves building things for the web.
+                        {profile?.title || "Full Stack Developer"}
                     </p>
                 </motion.div>
 
@@ -24,8 +44,13 @@ const About = () => {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         viewport={{ once: true }}
                     >
-                        <div className="w-full h-80 bg-slate-800 rounded-lg shadow-xl flex items-center justify-center border border-slate-700">
-                            <span className="text-slate-500">About Image Placeholder</span>
+                        <div className="w-full h-80 bg-slate-800 rounded-lg shadow-xl flex items-center justify-center border border-slate-700 overflow-hidden">
+                            {/* In a real app, perhaps another image or the same profile image */}
+                            <div className="text-slate-500 flex flex-col items-center">
+                                {/* Illustration or Image */}
+                                <div className="w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl mb-4"></div>
+                                <span>passionate about code</span>
+                            </div>
                         </div>
                     </motion.div>
 
@@ -34,25 +59,17 @@ const About = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                         viewport={{ once: true }}
-                        className="space-y-6 text-gray-300"
+                        className="space-y-6 text-gray-300 leading-relaxed"
                     >
                         <p>
-                            Hello! I'm Faiz, a software developer based in [Your Location]. I enjoy creating things that live on the internet. My interest in web development started back in [Year] when I decided to try editing custom Tumblr themes — turns out hacking together HTML & CSS is pretty fun!
+                            {bio}
                         </p>
                         <p>
-                            Fast-forward to today, and I've had the privilege of working at an advertising agency, a start-up, a huge corporation, and a student-led design studio. My main focus these days is building accessible, inclusive products and digital experiences at Upstatement for a variety of clients.
+                            I enjoy creating clean, scalable web applications and exploring new technologies.
+                            My journey is driven by a curiosity to understand how things work and a desire to build solutions that make a difference.
                         </p>
-                        <p>
-                            Here are a few technologies I've been working with recently:
-                        </p>
-                        <ul className="grid grid-cols-2 gap-2 list-disc list-inside text-blue-400">
-                            <li>JavaScript (ES6+)</li>
-                            <li>React</li>
-                            <li>Node.js</li>
-                            <li>TypeScript</li>
-                            <li>Express</li>
-                            <li>MongoDB</li>
-                        </ul>
+
+                        {/* We could fetch skills here too, but they are on Skills page */}
                     </motion.div>
                 </div>
             </div>
