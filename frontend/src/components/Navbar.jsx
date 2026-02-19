@@ -12,7 +12,8 @@ const Navbar = () => {
         { name: 'About', to: '/about' },
         { name: 'Skills', to: '/skills' },
         { name: 'Projects', to: '/projects' },
-        { name: 'Contact', to: '/contact' }
+        { name: 'Contact', to: '/contact' },
+        { name: 'Admin', to: '/admin' }
     ];
 
     const isActive = (path) => location.pathname === path;
@@ -66,7 +67,7 @@ const Navbar = () => {
                     className="md:hidden bg-slate-900"
                 >
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        {navItems.map((item) => (
+                        {navItems.filter(item => item.name !== 'Admin').map((item) => (
                             <Link
                                 key={item.name}
                                 to={item.to}

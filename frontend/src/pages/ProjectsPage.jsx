@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Github, ExternalLink, Rocket } from 'lucide-react';
+import API_URL from '../config';
 
 const ProjectsPage = () => {
     const [projects, setProjects] = useState([]);
@@ -12,10 +13,15 @@ const ProjectsPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await fetch('/api/projects');
+            const response = await fetch(`${API_URL}/api/projects`);
+            if (response.status === 500) {
+                console.error("Backend error 500: Check server logs");
+                setLoading(false);
+                return;
+            }
             const data = await response.json();
             const published = Array.isArray(data)
-                ? data.filter(p => !p.status || p.status === 'Published')
+                ? data.filter(p => !p.status || p.status === 'Published' || p.status === 'Completed' || p.status === 'Ongoing')
                 : [];
             setProjects(published);
             setLoading(false);
@@ -23,6 +29,14 @@ const ProjectsPage = () => {
             console.error('Error fetching projects:', error);
             setLoading(false);
         }
+    };
+
+    const getOptimizedUrl = (url) => {
+        if (!url) return '';
+        if (url.includes('cloudinary.com')) {
+            return url.replace('/upload/', '/upload/f_auto,q_auto,w_800/'); // Optimize width to 800px
+        }
+        return url;
     };
 
     if (loading) {
@@ -37,26 +51,12 @@ const ProjectsPage = () => {
         <div className="min-h-screen bg-slate-900 text-white pt-20 pb-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto">
                 {projects.length === 0 ? (
-                    // Empty state - matching your design
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-center min-h-[60vh]"
-                    >
-                        <div className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-2xl p-12 max-w-2xl text-center">
-                            <h1 className="text-4xl font-bold mb-6">Projects</h1>
-                            <p className="text-gray-400 text-lg mb-8">
-                                I'm currently working on real-world projects focused on full stack development and data-driven solutions.
-                            </p>
-                            <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/50 text-cyan-400 px-6 py-3 rounded-full">
-                                <Rocket size={20} />
-                                <span>Projects coming soon</span>
-                            </div>
-                            <p className="text-gray-500 text-sm mt-8">
-                                Meanwhile, feel free to explore my skills, background, and contact me.
-                            </p>
+                    <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+                        <div className="bg-slate-800/50 p-8 rounded-2xl border border-slate-700/50">
+                            <h3 className="text-xl font-bold text-slate-300">No projects yet</h3>
+                            <p className="text-slate-500 mt-2">Projects added via the Admin Dashboard will appear here.</p>
                         </div>
-                    </motion.div>
+                    </div>
                 ) : (
                     // Projects grid
                     <>
@@ -80,70 +80,100 @@ const ProjectsPage = () => {
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="bg-slate-800/30 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden hover:border-cyan-400 transition-all group"
+                                    className="bg-[#0f1016] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 hover:-translate-y-2 hover:shadow-cyan-500/20 transition-all duration-300 group flex flex-col"
                                 >
-                                    {project.image && (
-                                        <div className="relative h-48 overflow-hidden bg-slate-700">
+                                    {/* Image Section */}
+                                    <div className="h-64 bg-slate-900 overflow-hidden relative">
+                                        {(project.thumbnail || (project.images && project.images.length > 0) || project.image) ? (
                                             <img
-                                                src={project.image}
+                                                src={getOptimizedUrl(project.image || project.thumbnail || (project.images && project.images[0]))}
                                                 alt={project.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                             />
-                                            {project.featured && (
-                                                <span className="absolute top-3 right-3 bg-cyan-500 text-white text-xs px-3 py-1 rounded-full">
-                                                    Featured
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-full text-slate-700 bg-[#0a0b10]">
+                                                <Rocket className="h-12 w-12 mb-3 opacity-20" />
+                                                <span className="text-sm font-medium opacity-50">No Preview</span>
+                                            </div>
+                                        )}
 
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold mb-3 group-hover:text-cyan-400 transition-colors">
+                                        {/* Status Badge */}
+                                        <div className="absolute top-4 right-4 animate-fade-in">
+                                            <div className={`
+                                                flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide border backdrop-blur-md shadow-lg
+                                                ${(project.status === 'Completed' || !project.status)
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-900/20'
+                                                    : project.status === 'Ongoing'
+                                                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-900/20'
+                                                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-blue-900/20'
+                                                }
+                                            `}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${(project.status === 'Completed' || !project.status) ? 'bg-emerald-400' : 'bg-current'} animate-pulse`}></span>
+                                                {(project.status || 'Completed').toUpperCase()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Content Section */}
+                                    <div className="p-8 flex-1 flex flex-col bg-[#0f1016]">
+                                        <h3 className="text-2xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 leading-tight">
                                             {project.title}
                                         </h3>
-                                        <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+
+                                        <p className="text-slate-400 text-sm mb-6 line-clamp-3 leading-relaxed">
                                             {project.description}
                                         </p>
 
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {project.technologies.slice(0, 3).map((tech, idx) => (
+                                        {/* Tags */}
+                                        <div className="flex flex-wrap gap-2 mb-8">
+                                            {project.technologies && project.technologies.slice(0, 4).map((tag, tagIndex) => (
                                                 <span
-                                                    key={idx}
-                                                    className="bg-slate-700/50 text-cyan-400 text-xs px-3 py-1 rounded-full"
+                                                    key={tagIndex}
+                                                    className="text-xs font-medium bg-[#1a1b23] text-blue-400 px-4 py-1.5 rounded-full border border-slate-800/50"
                                                 >
-                                                    {tech}
+                                                    {tag}
                                                 </span>
                                             ))}
-                                            {project.technologies.length > 3 && (
-                                                <span className="text-gray-500 text-xs px-2 py-1">
-                                                    +{project.technologies.length - 3} more
+                                            {project.technologies && project.technologies.length > 4 && (
+                                                <span className="text-xs font-medium bg-[#1a1b23] text-slate-500 px-3 py-1.5 rounded-full border border-slate-800/50">
+                                                    +{project.technologies.length - 4}
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="flex gap-3">
-                                            {project.githubLink && (
-                                                <a
-                                                    href={project.githubLink}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors"
-                                                >
-                                                    <Github size={18} />
-                                                    <span className="text-sm">Code</span>
-                                                </a>
-                                            )}
-                                            {project.liveLink && (
-                                                <a
-                                                    href={project.liveLink}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition-colors"
-                                                >
-                                                    <ExternalLink size={18} />
-                                                    <span className="text-sm">Live</span>
-                                                </a>
-                                            )}
+                                        {/* Action Buttons */}
+                                        <div className="flex gap-4 mt-auto">
+                                            <a
+                                                href={project.liveLink || '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`
+                                                    flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300
+                                                    ${project.liveLink
+                                                        ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-900/20 hover:shadow-blue-500/25 hover:-translate-y-0.5'
+                                                        : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                                    }
+                                                `}
+                                            >
+                                                <ExternalLink size={18} />
+                                                Live Demo
+                                            </a>
+
+                                            <a
+                                                href={project.githubLink || '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={`
+                                                    flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1b23] border border-slate-700/50 text-white transition-all duration-300
+                                                    ${project.githubLink
+                                                        ? 'hover:bg-slate-800 hover:border-slate-600 hover:-translate-y-0.5'
+                                                        : 'opacity-50 cursor-not-allowed'
+                                                    }
+                                                `}
+                                            >
+                                                <Github size={18} />
+                                                GitHub
+                                            </a>
                                         </div>
                                     </div>
                                 </motion.div>

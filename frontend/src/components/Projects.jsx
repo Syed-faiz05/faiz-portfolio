@@ -1,34 +1,48 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Github, ExternalLink } from 'lucide-react';
-
-const projectsData = [
-    {
-        title: 'Project One',
-        description: 'A brief description of project one. It is a web application built with React and Node.js.',
-        tags: ['React', 'Node.js', 'MongoDB', 'Tailwind'],
-        github: '#',
-        demo: '#',
-        placeholderColor: 'bg-blue-900'
-    },
-    {
-        title: 'Project Two',
-        description: 'A brief description of project two. This one focuses on real-time data visualization.',
-        tags: ['Vue.js', 'Firebase', 'D3.js'],
-        github: '#',
-        demo: '#',
-        placeholderColor: 'bg-purple-900'
-    },
-    {
-        title: 'Project Three',
-        description: 'A mobile-first e-commerce platform with stripe integration.',
-        tags: ['Next.js', 'Stripe', 'PostgreSQL'],
-        github: '#',
-        demo: '#',
-        placeholderColor: 'bg-indigo-900'
-    }
-];
+import { Github, ExternalLink, Loader2, Layers } from 'lucide-react';
+import API_URL from '../config';
 
 const Projects = () => {
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProjects = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/projects`);
+                const data = await res.json();
+                // Filter for published projects only
+                const publishedProjects = Array.isArray(data)
+                    ? data.filter(p => !p.status || p.status === 'Published' || p.status === 'Completed' || p.status === 'Ongoing')
+                    : [];
+                setProjects(publishedProjects);
+            } catch (error) {
+                console.error("Failed to fetch projects", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProjects();
+    }, []);
+
+    const getOptimizedUrl = (url) => {
+        if (!url) return '';
+        if (url.includes('cloudinary.com')) {
+            return url.replace('/upload/', '/upload/f_auto,q_auto,w_800/'); // Optimize width to 800px
+        }
+        return url;
+    };
+
+    if (loading) {
+        return (
+            <section id="projects" className="py-20 bg-slate-900/50 text-white flex justify-center items-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+            </section>
+        );
+    }
+
     return (
         <section id="projects" className="py-20 bg-slate-900/50 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,43 +53,125 @@ const Projects = () => {
                     viewport={{ once: true }}
                     className="text-center mb-12"
                 >
-                    <h2 className="text-3xl font-bold text-blue-500">My Projects</h2>
-                    <p className="mt-4 text-gray-300">Check out some of the things I've built.</p>
+                    <h2 className="text-3xl font-bold text-cyan-400">My Projects</h2>
+                    <p className="mt-4 text-gray-300">Check out some of the things I've built. <br /> <span className="text-xs text-slate-500">(Managed via Admin Dashboard)</span></p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {projectsData.map((project, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="bg-slate-800 rounded-lg overflow-hidden shadow-lg border border-slate-700 hover:border-blue-500 transition-all flex flex-col"
-                        >
-                            <div className={`h-48 ${project.placeholderColor} flex items-center justify-center`}>
-                                <span className="text-white/50 text-xl font-bold">{project.title} Preview</span>
-                            </div>
-                            <div className="p-6 flex-1 flex flex-col">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-xl font-bold text-white">{project.title}</h3>
-                                    <div className="flex space-x-3">
-                                        <a href={project.github} className="text-gray-400 hover:text-white transition-colors"><Github size={20} /></a>
-                                        <a href={project.demo} className="text-gray-400 hover:text-white transition-colors"><ExternalLink size={20} /></a>
+                {projects.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {projects.map((project, index) => (
+                            <motion.div
+                                key={project._id}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                                className="bg-[#0f1016] rounded-3xl overflow-hidden shadow-2xl border border-slate-800 hover:-translate-y-2 hover:shadow-cyan-500/20 transition-all duration-300 group flex flex-col"
+                            >
+                                {/* Image Section */}
+                                <div className="h-64 bg-slate-900 overflow-hidden relative">
+                                    {(project.thumbnail || (project.images && project.images.length > 0) || project.image) ? (
+                                        <img
+                                            src={getOptimizedUrl(project.image || project.thumbnail || (project.images && project.images[0]))}
+                                            alt={project.title}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-700 bg-[#0a0b10]">
+                                            <Layers className="h-12 w-12 mb-3 opacity-20" />
+                                            <span className="text-sm font-medium opacity-50">No Preview</span>
+                                        </div>
+                                    )}
+
+                                    {/* Status Badge */}
+                                    <div className="absolute top-4 right-4 animate-fade-in">
+                                        <div className={`
+                                            flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide border backdrop-blur-md shadow-lg
+                                            ${(project.status === 'Completed' || !project.status)
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-900/20'
+                                                : project.status === 'Ongoing'
+                                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-900/20'
+                                                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-blue-900/20'
+                                            }
+                                        `}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${(project.status === 'Completed' || !project.status) ? 'bg-emerald-400' : 'bg-current'} animate-pulse`}></span>
+                                            {(project.status || 'Completed').toUpperCase()}
+                                        </div>
                                     </div>
                                 </div>
-                                <p className="text-gray-300 mb-4 flex-1">{project.description}</p>
-                                <div className="flex flex-wrap gap-2 mt-auto">
-                                    {project.tags.map((tag, tagIndex) => (
-                                        <span key={tagIndex} className="text-xs bg-slate-900 text-blue-400 px-2 py-1 rounded-full border border-slate-700">
-                                            {tag}
-                                        </span>
-                                    ))}
+
+                                {/* Content Section */}
+                                <div className="p-8 flex-1 flex flex-col bg-[#0f1016]">
+                                    <h3 className="text-2xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 leading-tight">
+                                        {project.title}
+                                    </h3>
+
+                                    <p className="text-slate-400 text-sm mb-6 line-clamp-3 leading-relaxed">
+                                        {project.description}
+                                    </p>
+
+                                    {/* Tags */}
+                                    <div className="flex flex-wrap gap-2 mb-8">
+                                        {project.technologies && project.technologies.slice(0, 4).map((tag, tagIndex) => (
+                                            <span
+                                                key={tagIndex}
+                                                className="text-xs font-medium bg-[#1a1b23] text-blue-400 px-4 py-1.5 rounded-full border border-slate-800/50"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                        {project.technologies && project.technologies.length > 4 && (
+                                            <span className="text-xs font-medium bg-[#1a1b23] text-slate-500 px-3 py-1.5 rounded-full border border-slate-800/50">
+                                                +{project.technologies.length - 4}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-4 mt-auto">
+                                        <a
+                                            href={project.liveLink || '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`
+                                                flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300
+                                                ${project.liveLink
+                                                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-900/20 hover:shadow-blue-500/25 hover:-translate-y-0.5'
+                                                    : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                                }
+                                            `}
+                                        >
+                                            <ExternalLink size={18} />
+                                            Live Demo
+                                        </a>
+
+                                        <a
+                                            href={project.githubLink || '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`
+                                                flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm bg-[#1a1b23] border border-slate-700/50 text-white transition-all duration-300
+                                                ${project.githubLink
+                                                    ? 'hover:bg-slate-800 hover:border-slate-600 hover:-translate-y-0.5'
+                                                    : 'opacity-50 cursor-not-allowed'
+                                                }
+                                            `}
+                                        >
+                                            <Github size={18} />
+                                            GitHub
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 bg-slate-800/20 rounded-xl border border-dashed border-slate-700">
+                        <Layers className="h-12 w-12 mx-auto mb-4 text-slate-600" />
+                        <h3 className="text-lg font-medium text-slate-400">No projects published yet</h3>
+                        <p className="text-slate-500 mt-2">Check back soon for updates!</p>
+                    </div>
+                )}
             </div>
         </section>
     );

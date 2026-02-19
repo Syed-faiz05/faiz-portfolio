@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import './LeetCodeActivity.css';
+import API_URL from '../config';
 
 const LeetCodeActivity = ({ username }) => {
     const [activityData, setActivityData] = useState([]);
@@ -12,12 +13,7 @@ const LeetCodeActivity = ({ username }) => {
     useEffect(() => {
         const fetchLeetCodeData = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/leetcode/${username}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
+                const response = await fetch(`${API_URL}/api/leetcode/${username}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch LeetCode data');

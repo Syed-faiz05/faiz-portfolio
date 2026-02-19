@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Github, Linkedin, Mail, Code2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import API_URL from '../config';
 // Image Import
 const profileImg = new URL('../assets/profile.jpg', import.meta.url).href;
-import LeetCodeActivity from '../components/LeetCodeActivity';
+import LeetCodeHeatmap from '../components/LeetCodeHeatmap';
 import NetworkParticles from '../components/NetworkParticles';
 
 
@@ -15,7 +16,7 @@ const Home = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await fetch('/api/profile');
+                const res = await fetch(`${API_URL}/api/profile`);
                 if (res.ok) {
                     const data = await res.json();
                     setProfile(data);
@@ -33,10 +34,11 @@ const Home = () => {
         document.getElementById('activity-section')?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const display = profile || {
+    // Fallback profile data
+    const defaultProfile = {
         name: 'Syed Faiz',
-        title: 'Full Stack Developer - Junior Data Scientist',
-        bio: 'I build scalable web applications and data driven solutions using React, Node.js, and Python.',
+        title: 'Full Stack Web Developer',
+        bio: 'Full Stack Developer & Junior Data Scientist with a passion for building scalable web applications and data-driven solutions. Specialized in React, Node.js, and Python, I transform complex problems into intuitive, user-centric digital experiences.',
         socialLinks: {
             github: 'https://github.com/Syed-faiz05',
             linkedin: 'https://www.linkedin.com/in/syed-faiz-547a2a2a4/',
@@ -44,6 +46,16 @@ const Home = () => {
             email: 'syedfaiz052005@gmail.com'
         }
     };
+
+    // Use default profile if: 
+    // 1. Data hasn't loaded yet (profile is null)
+    // 2. The loaded data is the old placeholder "My Name"
+    const display = (profile && profile.name !== 'My Name') ? profile : defaultProfile;
+
+    // Ensure title is consistent if simpler one is preferred
+    if (display.title === 'Full Stack Developer & Junior Data Scientist') {
+        display.title = 'Full Stack Web Developer';
+    }
 
     return (
         <div className="min-h-screen bg-slate-900 relative">
@@ -195,7 +207,7 @@ const Home = () => {
                         transition={{ duration: 0.8 }}
                         viewport={{ once: true }}
                     >
-                        <LeetCodeActivity username="Syed_Faiz05" />
+                        <LeetCodeHeatmap username="Syed_Faiz05" />
                     </motion.div>
 
                     {/* GitHub Activity */}

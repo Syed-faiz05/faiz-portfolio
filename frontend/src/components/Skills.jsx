@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import API_URL from '../config';
 
 const Skills = () => {
     const [skills, setSkills] = useState([]);
-
-    // Default fallback (can be empty or current hardcoded list)
-    const fallbackData = [
-        { name: 'JavaScript', level: 90 },
-        { name: 'React', level: 90 },
-        { name: 'Node.js', level: 75 },
-    ];
 
     useEffect(() => {
         fetchSkills();
@@ -17,16 +11,16 @@ const Skills = () => {
 
     const fetchSkills = async () => {
         try {
-            const res = await fetch('/api/skills');
+            const res = await fetch(`${API_URL}/api/skills`);
             const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
+            if (Array.isArray(data)) {
                 setSkills(data);
             } else {
-                setSkills(fallbackData);
+                setSkills([]);
             }
         } catch (error) {
             console.error("Failed to fetch skills", error);
-            setSkills(fallbackData);
+            setSkills([]);
         }
     };
 
