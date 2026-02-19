@@ -1,8 +1,8 @@
 
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Trophy, Calendar, Zap, RefreshCw, ExternalLink } from 'lucide-react';
+import API_URL from '../config';
 
 const LeetCodeHeatmap = ({ username }) => {
     const [submissionData, setSubmissionData] = useState(null);
@@ -13,7 +13,7 @@ const LeetCodeHeatmap = ({ username }) => {
     const fetchLeetCodeData = async () => {
         try {
             // Using timestamp to prevent caching
-            const response = await fetch(`http://localhost:5000/api/leetcode/${username}?t=${Date.now()}`);
+            const response = await fetch(`${API_URL}/api/leetcode/${username}?t=${Date.now()}`);
 
             if (!response.ok) {
                 throw new Error('Failed to fetch LeetCode data');
@@ -308,5 +308,3 @@ const LeetCodeHeatmap = ({ username }) => {
 };
 
 export default LeetCodeHeatmap;
-
-

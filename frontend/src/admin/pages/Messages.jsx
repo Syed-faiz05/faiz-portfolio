@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { MessageSquare, Star, Trash2, Search, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import API_URL from '../../config';
 
 const Messages = () => {
     const { user } = useAuth();
@@ -16,7 +18,7 @@ const Messages = () => {
 
     const fetchMessages = async () => {
         try {
-            const res = await fetch('/api/messages', {
+            const res = await fetch(`${API_URL}/api/messages`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (!res.ok) throw new Error('Failed to load messages');
@@ -31,7 +33,7 @@ const Messages = () => {
 
     const toggleRead = async (id, currentStatus) => {
         try {
-            const res = await fetch(`/api/messages/${id}`, {
+            const res = await fetch(`${API_URL}/api/messages/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -51,7 +53,7 @@ const Messages = () => {
 
     const toggleStar = async (id, currentStatus) => {
         try {
-            const res = await fetch(`/api/messages/${id}`, {
+            const res = await fetch(`${API_URL}/api/messages/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -72,7 +74,7 @@ const Messages = () => {
     const deleteMessage = async (id) => {
         if (!window.confirm('Delete this message?')) return;
         try {
-            const res = await fetch(`/api/messages/${id}`, {
+            const res = await fetch(`${API_URL}/api/messages/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });

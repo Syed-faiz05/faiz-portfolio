@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Trash2, Edit2, ExternalLink, Github } from 'lucide-react';
+import API_URL from '../config';
 
 const AdminPage = () => {
     const [projects, setProjects] = useState([]);
@@ -23,7 +25,7 @@ const AdminPage = () => {
 
     const fetchProjects = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/projects');
+            const response = await fetch(`${API_URL}/api/projects`);
             const data = await response.json();
             setProjects(data);
             setLoading(false);
@@ -43,8 +45,8 @@ const AdminPage = () => {
 
         try {
             const url = editingProject
-                ? `http://localhost:5000/api/projects/${editingProject._id}`
-                : 'http://localhost:5000/api/projects';
+                ? `${API_URL}/api/projects/${editingProject._id}`
+                : `${API_URL}/api/projects`;
 
             const method = editingProject ? 'PUT' : 'POST';
 
@@ -68,7 +70,7 @@ const AdminPage = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this project?')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/projects/${id}`, {
+                const response = await fetch(`${API_URL}/api/projects/${id}`, {
                     method: 'DELETE'
                 });
 

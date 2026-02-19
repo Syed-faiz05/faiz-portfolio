@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Layers, Code, MessageSquare, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import API_URL from '../../config';
 
 const StatCard = ({ title, value, icon: Icon, color, to }) => (
     <Link to={to} className="block group">
@@ -34,7 +36,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await fetch('/api/dashboard/stats', {
+                const res = await fetch(`${API_URL}/api/dashboard/stats`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
 
