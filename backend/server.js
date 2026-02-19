@@ -1,137 +1,260 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key_change_me';
 
-// Middleware
+// -----------------------------
+// 1️⃣  MIDDLEWARE
+// -----------------------------
+
+app.use(express.json({ limit: '50mb' }));
+
+// ✅ CONFIGURED CORS
+const allowedOrigins = [
+    'https://faiz-portfolio-bcpk13mdw-syedfaiz052004-9082s-projects.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5000'
+];
+
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', ],
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 200
 }));
-app.use(express.json({ limit: '50mb' })); // Increased limit for image uploads
 
-// Custom Middleware
-const trackVisitor = require('./middleware/visitorTracker');
-app.use(trackVisitor); // Use Analytics Tracker globally (on GETs)
+// Enable pre-flight requests for all routes
+app.options('*', cors());
 
-// MongoDB connection
-const Admin = require('./models/Admin');
+// -----------------------------
+// 2️⃣ DATABASE CONNECTION
+// -----------------------------
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/portfolio', {
-            // These options are no longer needed in Mongoose 6+, but keeping them doesn't hurt if on older versions
-            // useNewUrlParser: true,
-            // useUnifiedTopology: true,
-        });
+        const conn = await mongoose.connect(
+            process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio'
+        );
         console.log(`MongoDB Connected: ${conn.connection.host}`);
-
-        // Seed Default Admin
-        const adminCount = await Admin.countDocuments();
-        if (adminCount === 0) {
-            await Admin.create({
-                username: process.env.ADMIN_USERNAME || 'faiz',
-                password: process.env.ADMIN_PASSWORD || '123456'
-            });
-            console.log('Default Admin Created');
-        }
-
+        seedAdmin();
     } catch (error) {
-        console.error(`Error: ${error.message}`);
-        console.error('Make sure your IP is whitelisted in MongoDB Atlas or your local DB is running.');
-        // Don't exit process so the server can still respond with 500s instead of crashing
+        console.error(`Mongo Error: ${error.message}`);
     }
 };
-connectDB();
 
-// Routes Imports
-// Routes Imports
-const authRoutes = require('./routes/authRoutes');
-const projectRoutes = require('./routes/projectRoutes');
-const skillRoutes = require('./routes/skillRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const profileRoutes = require('./routes/profileRoutes');
-const messageRoutes = require('./routes/messageRoutes');
+// -----------------------------
+// 3️⃣ MODELS
+// -----------------------------
 
-// Use Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/skills', skillRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/about', require('./routes/aboutRoutes'));
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+});
+const User = mongoose.model('User', userSchema);
 
-// LeetCode proxy endpoint (Kept from original)
-app.get('/api/leetcode/:username', async (req, res) => {
-    const { username } = req.params;
-    try {
-        const fetch = (await import('node-fetch')).default;
-        const query = `
-            query userProfileCalendar($username: String!) {
-                matchedUser(username: $username) {
-                    userCalendar {
-                        activeYears
-                        streak
-                        totalActiveDays
-                        submissionCalendar
-                    }
-                }
-            }
-        `;
-        const response = await fetch('https://leetcode.com/graphql', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Referer': 'https://leetcode.com',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            },
-            body: JSON.stringify({
-                query: query,
-                variables: { username: username }
-            })
-        });
+const projectSchema = new mongoose.Schema({
+    title: String,
+    description: String,
+    technologies: [String],
+    tags: [String],
+    githubLink: String,
+    liveLink: String,
+    image: String,
+    thumbnail: String,
+    status: { type: String, default: 'Published' },
+    featured: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+const Project = mongoose.model('Project', projectSchema);
 
-        if (!response.ok) {
-            console.error(`LeetCode API error: ${response.status} ${response.statusText}`);
-            return res.status(response.status).json({ error: `LeetCode API error: ${response.statusText}` });
-        }
+const skillSchema = new mongoose.Schema({
+    name: String,
+    category: { type: String, default: 'Other' },
+    level: { type: Number, default: 50 },
+    icon: String
+});
+const Skill = mongoose.model('Skill', skillSchema);
 
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        console.error('Error fetching LeetCode data:', error);
-        res.status(500).json({ error: 'Failed to fetch LeetCode data' });
+const messageSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+    subject: String,
+    message: String,
+    read: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+const Message = mongoose.model('Message', messageSchema);
+
+const aboutSchema = new mongoose.Schema({
+    description: String,
+    resumeLink: String,
+    socialLinks: {
+        github: String,
+        linkedin: String,
+        twitter: String
     }
 });
+const About = mongoose.model('About', aboutSchema);
 
-// Catch-all for undefined API routes to prevent HTML fallback
-app.use('/api', (req, res) => {
-    res.status(404).json({ message: 'API route not found' });
+// -----------------------------
+// 4️⃣ AUTH MIDDLEWARE
+// -----------------------------
+
+const protect = async (req, res, next) => {
+    let token;
+
+    if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith('Bearer')
+    ) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, JWT_SECRET);
+            req.user = await User.findById(decoded.id).select('-password');
+            next();
+        } catch (error) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+    }
+
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided' });
+    }
+};
+
+// -----------------------------
+// 5️⃣ SEED ADMIN
+// -----------------------------
+
+const seedAdmin = async () => {
+    try {
+        const username = 'faiz';
+        const password = '123456';
+
+        const existingUser = await User.findOne({ username });
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        if (existingUser) {
+            existingUser.password = hashedPassword;
+            await existingUser.save();
+        } else {
+            await User.create({ username, password: hashedPassword });
+        }
+
+        console.log('Admin ready');
+    } catch (err) {
+        console.error('Seed error:', err.message);
+    }
+};
+
+// -----------------------------
+// 6️⃣ ROUTES
+// -----------------------------
+
+app.get('/', (req, res) => {
+    res.send('API is running...');
 });
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error('Global Error Handler:', err.stack);
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-    res.status(statusCode).json({
-        message: err.message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+app.get('/api/profile', async (req, res) => {
+    res.json({ message: "Profile endpoint working" });
+});
+
+app.get('/api/about', async (req, res) => {
+    const about = await About.findOne();
+    res.json(about || {
+        description: "Full Stack Developer",
+        resumeLink: "",
+        socialLinks: {}
     });
 });
 
-// Deprecated old placeholder route if it exists, or just leave it out 
-// app.use('/api/projects', projectRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', uptime: process.uptime() });
+app.get('/api/projects', async (req, res) => {
+    const projects = await Project.find({});
+    res.json(projects);
 });
 
-const PORT = process.env.PORT || 5000;
+app.get('/api/skills', async (req, res) => {
+    const skills = await Skill.find({});
+    res.json(skills);
+});
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
+app.post('/api/messages', async (req, res) => {
+    const newMessage = new Message(req.body);
+    await newMessage.save();
+    res.status(201).json(newMessage);
+});
+
+// -----------------------------
+// 7️⃣ LEETCODE PROXY
+// -----------------------------
+
+app.get('/api/leetcode/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const query = `
+        query userProfileCalendar($username: String!) {
+            matchedUser(username: $username) {
+                userCalendar {
+                    activeYears
+                    streak
+                    totalActiveDays
+                    submissionCalendar
+                }
+            }
+        }`;
+
+        const response = await axios.post(
+            'https://leetcode.com/graphql',
+            {
+                query,
+                variables: { username }
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            }
+        );
+
+        if (!response.data) {
+            return res.status(500).json({ error: "No data from LeetCode" });
+        }
+
+        return res.status(200).json(response.data);
+
+    } catch (error) {
+        console.error("LeetCode API error:", error.response?.data || error.message);
+        return res.status(500).json({
+            error: "LeetCode fetch failed",
+            details: error.message
+        });
+    }
+});
+
+// -----------------------------
+// 8️⃣ START SERVER
+// -----------------------------
+
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
 });
