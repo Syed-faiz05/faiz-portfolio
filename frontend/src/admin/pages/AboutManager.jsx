@@ -29,9 +29,7 @@ const AboutManager = () => {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/about/all`, {
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
+            const res = await fetch(`${API_URL}/api/timeline/all`);
             const data = await res.json();
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -53,14 +51,11 @@ const AboutManager = () => {
         e.preventDefault();
         try {
             const method = currentId ? 'PUT' : 'POST';
-            const url = currentId ? `${API_URL}/api/about/${currentId}` : `${API_URL}/api/about`;
+            const url = currentId ? `${API_URL}/api/timeline/${currentId}` : `${API_URL}/api/timeline`;
 
             const res = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
@@ -77,10 +72,7 @@ const AboutManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Delete this timeline item?')) return;
         try {
-            await fetch(`${API_URL}/api/about/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
+            await fetch(`${API_URL}/api/timeline/${id}`, { method: 'DELETE' });
             toast.success('Deleted successfully');
             fetchItems();
         } catch (error) {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Github, ExternalLink, Loader2, Layers } from 'lucide-react';
+import { Github, ExternalLink, Loader2, Layers, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import API_URL from '../config';
 
-const Projects = () => {
+const Projects = ({ limit = null }) => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -35,6 +36,8 @@ const Projects = () => {
         return url;
     };
 
+    const displayProjects = limit ? projects.slice(0, limit) : projects;
+
     if (loading) {
         return (
             <section id="projects" className="py-20 bg-slate-900/50 text-white flex justify-center items-center min-h-[400px]">
@@ -44,7 +47,7 @@ const Projects = () => {
     }
 
     return (
-        <section id="projects" className="py-20 bg-slate-900/50 text-white">
+        <section id="projects" className="py-20 bg-slate-900/50 text-white relative">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -53,13 +56,20 @@ const Projects = () => {
                     viewport={{ once: true }}
                     className="text-center mb-12"
                 >
-                    <h2 className="text-3xl font-bold text-cyan-400">My Projects</h2>
-                    <p className="mt-4 text-gray-300">Check out some of the things I've built. <br /> <span className="text-xs text-slate-500">(Managed via Admin Dashboard)</span></p>
+                    <h2 className="text-3xl font-bold text-cyan-400">
+                        {limit ? "Featured Projects" : "My Projects"}
+                    </h2>
+                    <p className="mt-4 text-gray-300">
+                        {limit
+                            ? "A glimpse of what I've been working on."
+                            : "Check out some of the things I've built."
+                        }
+                    </p>
                 </motion.div>
 
-                {projects.length > 0 ? (
+                {displayProjects.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {projects.map((project, index) => (
+                        {displayProjects.map((project, index) => (
                             <motion.div
                                 key={project._id}
                                 initial={{ opacity: 0, y: 30 }}
@@ -168,9 +178,24 @@ const Projects = () => {
                 ) : (
                     <div className="text-center py-20 bg-slate-800/20 rounded-xl border border-dashed border-slate-700">
                         <Layers className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                        <h3 className="text-lg font-medium text-slate-400">No projects published yet</h3>
+                        <h3 className="text-lg font-medium text-slate-400">No projects to display</h3>
                         <p className="text-slate-500 mt-2">Check back soon for updates!</p>
                     </div>
+                )}
+
+                {/* View All Button */}
+                {limit && projects.length > limit && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        className="flex justify-center mt-12"
+                    >
+                        <Link to="/projects">
+                            <button className="flex items-center gap-2 px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-white font-semibold transition-all hover:scale-105">
+                                View All Projects <ArrowRight size={20} />
+                            </button>
+                        </Link>
+                    </motion.div>
                 )}
             </div>
         </section>

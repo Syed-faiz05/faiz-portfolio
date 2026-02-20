@@ -9,7 +9,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import ContactPage from './pages/ContactPage';
 
 // Admin
-import AdminLogin from './admin/pages/AdminLogin';
+
 import AdminLayout from './admin/AdminLayout';
 import Dashboard from './admin/pages/Dashboard';
 import ProjectManager from './admin/pages/ProjectManager';
@@ -29,7 +29,7 @@ function App() {
         <Toaster position="bottom-right" />
         <Routes>
           {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />

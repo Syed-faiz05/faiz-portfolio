@@ -4,19 +4,8 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 
 const AdminLayout = () => {
-    const { user, loading } = useAuth();
+    // Auth check removed as requested
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return <Navigate to="/admin/login" replace />;
-    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans">

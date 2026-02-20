@@ -113,7 +113,7 @@ const About = () => {
 
     const fetchTimeline = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/about`);
+            const res = await fetch(`${API_URL}/api/timeline`);
             if (res.ok) {
                 const data = await res.json();
                 setTimelineData(data);

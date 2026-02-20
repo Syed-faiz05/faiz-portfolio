@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import './GithubIsometric.css';
-import { Github, Rotate3d, LayoutGrid, Box } from 'lucide-react';
+import { Github, Rotate3d, LayoutGrid, Box, MousePointer2 } from 'lucide-react';
 
 const GithubIsometric = ({ username }) => {
     const [data, setData] = useState(null);
