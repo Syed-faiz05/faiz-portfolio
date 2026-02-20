@@ -144,10 +144,6 @@ const ProjectsPage = () => {
     // Filter Chips - Dynamic based on available tech
     const [availableTechs, setAvailableTechs] = useState(['All']);
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
-
     const fetchProjects = async () => {
         try {
             const response = await fetch(`${API_URL}/api/projects`);
@@ -171,6 +167,10 @@ const ProjectsPage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
 
     const getOptimizedUrl = (url) => {
         if (!url) return '';
@@ -268,7 +268,7 @@ const ProjectsPage = () => {
                             <span className="text-purple-400">✦</span> Featured Projects
                         </h2>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {featuredProjects.map((project, index) => (
+                            {featuredProjects.map((project) => (
                                 <motion.div
                                     key={project._id}
                                     initial={{ opacity: 0, y: 20 }}

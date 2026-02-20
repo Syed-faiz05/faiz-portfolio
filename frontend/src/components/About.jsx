@@ -1,8 +1,8 @@
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ScrollControls, useScroll, Html, Stars, Sparkles, Float, PerspectiveCamera, Cloud } from '@react-three/drei';
 import { EffectComposer, Bloom, Noise, Vignette, ChromaticAberration } from '@react-three/postprocessing';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
 import { Award, Zap, Code, Database, Rocket, Cpu } from 'lucide-react';
 
@@ -81,7 +81,7 @@ const ROADMAP_DATA = [
 
 function WarpParticles() {
     const mesh = useRef();
-    useFrame((state) => {
+    useFrame(() => {
         mesh.current.rotation.z += 0.001; // Slow swirl
     });
     return (
@@ -271,11 +271,12 @@ function CameraRig({ curve }) {
         // Add subtle sway
         const swayX = Math.sin(state.clock.elapsedTime * 0.5) * 0.5;
         const swayY = Math.cos(state.clock.elapsedTime * 0.3) * 0.2;
-        vec.x += swayX;
-        vec.y += swayY;
+        const targetPos = vec.clone();
+        targetPos.x += swayX;
+        targetPos.y += swayY;
 
         // Smooth follow
-        camera.position.lerp(vec, 0.08); // 0.08 damping
+        camera.position.lerp(targetPos, 0.08); // 0.08 damping
 
         // Look At target
         lookAt.copy(nextPoint).y += 1; // Look forward and slightly up

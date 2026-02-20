@@ -15,6 +15,7 @@ const SkillManager = () => {
 
     useEffect(() => {
         fetchSkills();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchSkills = async () => {

@@ -14,6 +14,7 @@ const Messages = () => {
 
     useEffect(() => {
         fetchMessages();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchMessages = async () => {

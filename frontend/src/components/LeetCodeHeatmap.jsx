@@ -51,6 +51,7 @@ const LeetCodeHeatmap = ({ username }) => {
         // Poll every 5 minutes for live updates
         const interval = setInterval(fetchLeetCodeData, 300000);
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [username]);
 
     const getIntensityClass = (count) => {

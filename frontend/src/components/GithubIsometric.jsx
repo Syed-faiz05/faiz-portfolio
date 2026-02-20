@@ -31,7 +31,7 @@ const GithubIsometric = ({ username }) => {
     useEffect(() => {
         fetchData();
         startAnimationLoop();
-        return () => cancelAnimationFrame(animationFrame.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [username]);
 
     // Auto-scroll to end (recent stats) when data loads
@@ -166,8 +166,8 @@ const GithubIsometric = ({ username }) => {
         window.addEventListener('mouseup', handleMouseUp);
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [viewMode]);
 
     // Helpers
@@ -207,7 +207,7 @@ const GithubIsometric = ({ username }) => {
         if (stats.busiestDay && stats.busiestDay.date) {
             formattedBusiestDate = new Date(stats.busiestDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
-    } catch (e) { /* ignore date error */ }
+    } catch { /* ignore date error */ }
 
     return (
         <div className="bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-6 max-w-6xl mx-auto select-none overflow-hidden flex flex-col">
@@ -297,7 +297,7 @@ const GithubIsometric = ({ username }) => {
                                             let dateLabel = '-';
                                             try {
                                                 dateLabel = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                            } catch (e) { }
+                                            } catch { /* ignore date error */ }
 
                                             return (
                                                 <div

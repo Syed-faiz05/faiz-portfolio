@@ -5,10 +5,6 @@ import API_URL from '../config';
 const Skills = () => {
     const [skills, setSkills] = useState([]);
 
-    useEffect(() => {
-        fetchSkills();
-    }, []);
-
     const fetchSkills = async () => {
         try {
             const res = await fetch(`${API_URL}/api/skills`);
@@ -23,6 +19,10 @@ const Skills = () => {
             setSkills([]);
         }
     };
+
+    useEffect(() => {
+        fetchSkills();
+    }, []);
 
     return (
         <section id="skills" className="py-20 bg-slate-800/30 text-white">

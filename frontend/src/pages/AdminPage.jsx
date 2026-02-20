@@ -19,10 +19,6 @@ const AdminPage = () => {
         featured: false
     });
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
-
     const fetchProjects = async () => {
         try {
             const response = await fetch(`${API_URL}/api/projects`);
@@ -34,6 +30,10 @@ const AdminPage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
