@@ -19,6 +19,7 @@ app.use(express.json({ limit: '50mb' }));
 // ✅ CONFIGURED CORS
 const allowedOrigins = [
     'https://faiz-portfolio-bcpk13mdw-syedfaiz052004-9082s-projects.vercel.app',
+    'https://faiz-portfolio-sepia.vercel.app', // NEW BACKEND URL ALLOWED (just in case they query themselves)
     'http://localhost:5173',
     'http://localhost:5000'
 ];
