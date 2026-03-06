@@ -169,8 +169,13 @@ app.get('/api/leetcode/:username', async (req, res) => {
 // 8️⃣ START SERVER
 // -----------------------------
 
-connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-    });
-});
+// Remove or comment out the app.listen block:
+// connectDB().then(() => {
+//     app.listen(PORT, () => {
+//         console.log(`Server running on port ${PORT}`);
+//     });
+// });
+
+// Replace with this for Vercel:
+connectDB();
+module.exports = app;
