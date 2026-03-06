@@ -52,153 +52,34 @@ const connectDB = async () => {
             process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio'
         );
         console.log(`MongoDB Connected: ${conn.connection.host}`);
-        seedAdmin();
     } catch (error) {
         console.error(`Mongo Error: ${error.message}`);
     }
 };
 
 // -----------------------------
-// 3️⃣ MODELS
-// -----------------------------
-
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-});
-const User = mongoose.model('User', userSchema);
-
-const projectSchema = new mongoose.Schema({
-    title: String,
-    description: String,
-    technologies: [String],
-    tags: [String],
-    githubLink: String,
-    liveLink: String,
-    image: String,
-    thumbnail: String,
-    status: { type: String, default: 'Published' },
-    featured: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now }
-});
-const Project = mongoose.model('Project', projectSchema);
-
-const skillSchema = new mongoose.Schema({
-    name: String,
-    category: { type: String, default: 'Other' },
-    level: { type: Number, default: 50 },
-    icon: String
-});
-const Skill = mongoose.model('Skill', skillSchema);
-
-const messageSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    subject: String,
-    message: String,
-    read: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now }
-});
-const Message = mongoose.model('Message', messageSchema);
-
-const aboutSchema = new mongoose.Schema({
-    description: String,
-    resumeLink: String,
-    socialLinks: {
-        github: String,
-        linkedin: String,
-        twitter: String
-    }
-});
-const About = mongoose.model('About', aboutSchema);
-
-// -----------------------------
-// 4️⃣ AUTH MIDDLEWARE
-// -----------------------------
-
-const protect = async (req, res, next) => {
-    let token;
-
-    if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith('Bearer')
-    ) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, JWT_SECRET);
-            req.user = await User.findById(decoded.id).select('-password');
-            next();
-        } catch (error) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-    }
-
-    if (!token) {
-        return res.status(401).json({ message: 'No token provided' });
-    }
-};
-
-// -----------------------------
-// 5️⃣ SEED ADMIN
-// -----------------------------
-
-const seedAdmin = async () => {
-    try {
-        const username = 'faiz';
-        const password = '123456';
-
-        const existingUser = await User.findOne({ username });
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        if (existingUser) {
-            existingUser.password = hashedPassword;
-            await existingUser.save();
-        } else {
-            await User.create({ username, password: hashedPassword });
-        }
-
-        console.log('Admin ready');
-    } catch (err) {
-        console.error('Seed error:', err.message);
-    }
-};
-
-// -----------------------------
-// 6️⃣ ROUTES
+// 3️⃣ ROUTES
 // -----------------------------
 
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
-app.get('/api/profile', async (req, res) => {
-    res.json({ message: "Profile endpoint working" });
-});
+const authRoutes = require('./routes/authRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const aboutRoutes = require('./routes/aboutRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const skillRoutes = require('./routes/skillRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
-app.get('/api/about', async (req, res) => {
-    const about = await About.findOne();
-    res.json(about || {
-        description: "Full Stack Developer",
-        resumeLink: "",
-        socialLinks: {}
-    });
-});
-
-app.get('/api/projects', async (req, res) => {
-    const projects = await Project.find({});
-    res.json(projects);
-});
-
-app.get('/api/skills', async (req, res) => {
-    const skills = await Skill.find({});
-    res.json(skills);
-});
-
-app.post('/api/messages', async (req, res) => {
-    const newMessage = new Message(req.body);
-    await newMessage.save();
-    res.status(201).json(newMessage);
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/about', aboutRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/messages', messageRoutes);
 
 // -----------------------------
 // 7️⃣ LEETCODE PROXY
@@ -208,42 +89,77 @@ app.get('/api/leetcode/:username', async (req, res) => {
     try {
         const { username } = req.params;
 
+        // ATTEMPT 1: Try the simple open API first
+        try {
+            const response = await axios.get(
+                `https://leetcode-stats-api.herokuapp.com/${username}`,
+                { timeout: 5000 } // Short timeout so it fails fast
+            );
+
+            if (response.data && response.data.status === 'success') {
+                return res.status(200).json(response.data);
+            }
+        } catch (apiErr) {
+            console.log("LeetCode Stats API failed, falling back to direct GraphQL:", apiErr.message);
+        }
+
+        // ATTEMPT 2: Fallback to direct LeetCode GraphQL (Extremely Reliable)
         const query = `
-        query userProfileCalendar($username: String!) {
+        query getUserProfile($username: String!) {
             matchedUser(username: $username) {
-                userCalendar {
-                    activeYears
-                    streak
-                    totalActiveDays
-                    submissionCalendar
+                profile {
+                    ranking
                 }
+                submitStats: submitStatsGlobal {
+                    acSubmissionNum {
+                        difficulty
+                        count
+                    }
+                }
+            }
+            allQuestionsCount {
+                difficulty
+                count
             }
         }`;
 
-        const response = await axios.post(
+        const gqlResponse = await axios.post(
             'https://leetcode.com/graphql',
-            {
-                query,
-                variables: { username }
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000
-            }
+            { query, variables: { username } },
+            { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
         );
 
-        if (!response.data) {
-            return res.status(500).json({ error: "No data from LeetCode" });
+        if (!gqlResponse.data || !gqlResponse.data.data.matchedUser) {
+            return res.status(404).json({ error: "User not found on LeetCode" });
         }
 
-        return res.status(200).json(response.data);
+        const user = gqlResponse.data.data.matchedUser;
+        const acStats = user.submitStats.acSubmissionNum;
+        const totalQs = gqlResponse.data.data.allQuestionsCount;
+
+        // Extract submissions by difficulty
+        const getCount = (diff, arr) => (arr.find(item => item.difficulty === diff) || { count: 0 }).count;
+
+        // Format exactly like the heroku api so the React frontend needs zero changes
+        const mappedData = {
+            status: "success",
+            totalSolved: getCount("All", acStats),
+            totalQuestions: getCount("All", totalQs),
+            easySolved: getCount("Easy", acStats),
+            totalEasy: getCount("Easy", totalQs),
+            mediumSolved: getCount("Medium", acStats),
+            totalMedium: getCount("Medium", totalQs),
+            hardSolved: getCount("Hard", acStats),
+            totalHard: getCount("Hard", totalQs),
+            ranking: user.profile.ranking || 0
+        };
+
+        return res.status(200).json(mappedData);
 
     } catch (error) {
-        console.error("LeetCode API error:", error.response?.data || error.message);
+        console.error("Critical LeetCode proxy failure:", error.message);
         return res.status(500).json({
-            error: "LeetCode fetch failed",
+            error: "All LeetCode fetches failed",
             details: error.message
         });
     }

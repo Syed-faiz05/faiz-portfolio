@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
 const Skill = require('../models/Skill');
-const Visitor = require('../models/Visitor'); // Keep visitor stats if valid
+const Visitor = require('../models/Visitor');
 const Message = require('../models/Message');
+const TimelineItem = require('../models/TimelineItem');
 const { protect } = require('../middleware/authMiddleware');
 
 // @route   GET /api/dashboard/stats
@@ -13,19 +14,25 @@ router.get('/stats', protect, async (req, res) => {
         const totalProjects = await Project.countDocuments();
         const totalSkills = await Skill.countDocuments();
         const totalMessages = await Message.countDocuments();
+        const totalVisitors = await Visitor.countDocuments();
+        const totalMilestones = await TimelineItem.countDocuments();
 
         // Recent Items
         const latestMessages = await Message.find().sort({ createdAt: -1 }).limit(5);
         const latestProjects = await Project.find().sort({ createdAt: -1 }).limit(5);
+        const latestVisitors = await Visitor.find().sort({ timestamp: -1 }).limit(5);
 
         res.json({
             counts: {
                 projects: totalProjects,
                 skills: totalSkills,
-                messages: totalMessages
+                messages: totalMessages,
+                visitors: totalVisitors,
+                milestones: totalMilestones
             },
             recentMessages: latestMessages,
-            recentProjects: latestProjects
+            recentProjects: latestProjects,
+            recentVisitors: latestVisitors
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

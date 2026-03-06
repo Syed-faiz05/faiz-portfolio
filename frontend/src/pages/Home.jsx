@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail, Code2, Terminal, Cpu, Globe, Award, Quote } from 'lucide-react';
+import { Github, Linkedin, Mail, Code2, Terminal, Cpu, Globe, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API_URL from '../config';
 
@@ -63,25 +63,6 @@ const Home = () => {
         { icon: <Cpu size={24} />, value: "20+", label: "Projects Built" },
         { icon: <Globe size={24} />, value: "10+", label: "Clients Served" },
         { icon: <Award size={24} />, value: "500+", label: "LeetCode Solved" },
-    ];
-
-    // Testimonials Data (Static for now)
-    const testimonials = [
-        {
-            name: "Sarah Jenkins",
-            role: "Project Manager",
-            text: "Faiz delivered the project way ahead of schedule. His understanding of React architecture is top-notch."
-        },
-        {
-            name: "David Chen",
-            role: "Tech Lead",
-            text: "Impressive problem-solving skills. He tackled our backend scaling issues with an elegant Node.js solution."
-        },
-        {
-            name: "Emily Davis",
-            role: "UI/UX Designer",
-            text: "A developer who actually cares about design details! working with Faiz was a breeze."
-        }
     ];
 
     return (
@@ -256,7 +237,7 @@ const Home = () => {
             <Projects limit={3} />
 
             {/* Activity Section (LeetCode & GitHub) */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pb-32">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -287,41 +268,6 @@ const Home = () => {
                     </motion.div>
                 </div>
             </div>
-
-            {/* Testimonials Section */}
-            <section className="py-20 bg-slate-800/10 border-t border-slate-800">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-12"
-                    >
-                        <h2 className="text-3xl font-bold text-cyan-400">What People Say</h2>
-                        <p className="mt-4 text-gray-300">Feedback from colleagues and clients.</p>
-                    </motion.div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {testimonials.map((t, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: i * 0.1 }}
-                                viewport={{ once: true }}
-                                className="bg-slate-800/30 p-8 rounded-2xl border border-slate-700/50 relative hover:bg-slate-800/50 transition-colors"
-                            >
-                                <Quote className="absolute top-4 right-4 text-slate-700 opacity-50" size={40} />
-                                <p className="text-gray-300 mb-6 italic leading-relaxed">"{t.text}"</p>
-                                <div>
-                                    <h4 className="text-white font-bold">{t.name}</h4>
-                                    <p className="text-cyan-400 text-sm">{t.role}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
         </div>
     );
 };

@@ -1,30 +1,76 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Layers, Code, MessageSquare, Clock, ArrowRight } from 'lucide-react';
+import { Layers, Code, MessageSquare, ArrowRight, Activity, Users, MapPin, Eye, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config';
 
-const StatCard = ({ title, value, icon: Icon, color, to }) => (
-    <Link to={to} className="block group">
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 overflow-hidden shadow-lg rounded-xl transition-all hover:bg-slate-800 hover:border-slate-600 h-full">
-            <div className="p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-slate-400 truncate">{title}</p>
-                        <p className="mt-2 text-3xl font-bold text-slate-100">{value}</p>
+// Animation variants
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const listContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { staggerChildren: 0.08 }
+    }
+};
+
+const listItemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 }
+};
+
+// Reusable animated Stat Card
+const StatCard = ({ title, value, icon: Icon, color, to, gradient }) => (
+    <motion.div variants={itemVariants} whileHover={{ y: -5 }} className="block group">
+        <Link to={to} className="block h-full">
+            <div className={`relative bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-${color.split('-')[1]}-500/10 hover:border-${color.split('-')[1]}-500/30 h-full flex flex-col`}>
+                {/* Background Glow */}
+                <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
+
+                <div className="p-6 flex-grow relative z-10">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-slate-400 truncate mb-1">{title}</p>
+                            <h3 className="text-4xl font-black text-slate-100 tracking-tight">{value}</h3>
+                        </div>
+                        <div className={`p-3 rounded-xl bg-slate-900/50 ring-1 ring-inset ring-${color.split('-')[1]}-500/20 group-hover:bg-slate-900/80 transition-colors`}>
+                            <Icon className={`h-6 w-6 ${color}`} aria-hidden="true" />
+                        </div>
                     </div>
-                    <div className={`p-3 rounded-lg ${color} bg-opacity-10 ring-1 ring-inset ring-opacity-20`}>
-                        <Icon className={`h-6 w-6 ${color}`} aria-hidden="true" />
+                </div>
+
+                <div className="bg-slate-900/40 px-6 py-3 border-t border-slate-700/50 relative z-10">
+                    <div className={`text-xs font-semibold ${color} flex items-center gap-1.5 group-hover:gap-2.5 transition-all duration-300`}>
+                        Manage {title} <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                 </div>
             </div>
-            <div className="bg-slate-900/50 px-6 py-2 border-t border-slate-700/50">
-                <div className="text-xs font-medium text-cyan-500 group-hover:text-cyan-400 flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Manage {title} <ArrowRight className="h-3 w-3" />
-                </div>
-            </div>
-        </div>
+        </Link>
+    </motion.div>
+);
+
+const QuickActionBtn = ({ label, icon: Icon, to, color }) => (
+    <Link to={to}>
+        <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700/50 transition-colors text-sm font-medium ${color}`}
+        >
+            <Icon className="h-4 w-4" /> {label}
+        </motion.button>
     </Link>
 );
 
@@ -59,110 +105,157 @@ const Dashboard = () => {
     }, [user?.token]);
 
     if (loading) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+        <div className="flex items-center justify-center h-[70vh]">
+            <div className="relative">
+                <div className="absolute inset-0 rounded-full blur-xl bg-cyan-500/20 animate-pulse"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 relative z-10"></div>
+            </div>
         </div>
     );
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="space-y-8 pb-8"
+        >
+            {/* Header Area */}
+            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-800/20 p-6 rounded-2xl border border-slate-700/30">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-100">Overview</h2>
-                    <p className="text-slate-400 mt-1">Welcome back, {user?.username}</p>
+                    <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400">Command Center</h2>
+                    <p className="text-slate-400 mt-1 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Welcome back, <span className="text-cyan-400 font-medium">{user?.username}</span>
+                    </p>
                 </div>
-                <div className="flex gap-2">
-                    <Link to="/" target="_blank" className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors border border-slate-700">
-                        View Live Site
+                <div className="flex gap-3">
+                    <Link to="/" target="_blank" className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-xl text-sm font-semibold transition-all border border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                        <Eye className="h-4 w-4" /> Live Site
                     </Link>
                 </div>
-            </div>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <QuickActionBtn label="New Project" icon={Plus} to="/admin/projects" color="text-indigo-400 hover:text-indigo-300" />
+                <QuickActionBtn label="Add Skill" icon={Plus} to="/admin/skills" color="text-emerald-400 hover:text-emerald-300" />
+                <QuickActionBtn label="Add Milestone" icon={Plus} to="/admin/about" color="text-amber-400 hover:text-amber-300" />
+                <QuickActionBtn label="View Messages" icon={MessageSquare} to="/admin/messages" color="text-purple-400 hover:text-purple-300" />
+            </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <StatCard
-                    title="Projects"
-                    value={stats?.counts?.projects || 0}
-                    icon={Layers}
-                    color="text-indigo-400"
-                    to="/admin/projects"
-                />
-                <StatCard
-                    title="Skills"
-                    value={stats?.counts?.skills || 0}
-                    icon={Code}
-                    color="text-emerald-400"
-                    to="/admin/skills"
-                />
-                <StatCard
-                    title="Messages"
-                    value={stats?.counts?.messages || 0}
-                    icon={MessageSquare}
-                    color="text-purple-400"
-                    to="/admin/messages"
-                />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Visitors" value={stats?.counts?.visitors || 0} icon={Users} color="text-cyan-400" gradient="from-cyan-500 to-blue-500" to="/admin/dashboard" />
+                <StatCard title="Projects" value={stats?.counts?.projects || 0} icon={Layers} color="text-indigo-400" gradient="from-indigo-500 to-purple-500" to="/admin/projects" />
+                <StatCard title="Tech Skills" value={stats?.counts?.skills || 0} icon={Code} color="text-emerald-400" gradient="from-emerald-500 to-teal-500" to="/admin/skills" />
+                <StatCard title="Timeline Events" value={stats?.counts?.milestones || 0} icon={Activity} color="text-amber-400" gradient="from-amber-500 to-orange-500" to="/admin/about" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Recent Messages */}
-                <div className="bg-slate-800/50 backdrop-blur-md shadow-lg rounded-2xl border border-slate-700/50 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-700/50 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <MessageSquare className="h-5 w-5 text-cyan-400" />
-                            <h3 className="text-lg leading-6 font-semibold text-slate-100">Recent Messages</h3>
-                        </div>
-                        <Link to="/admin/messages" className="text-xs font-medium text-cyan-400 hover:text-cyan-300">View All</Link>
-                    </div>
-                    <ul className="divide-y divide-slate-700/50">
-                        {stats?.recentMessages?.map((msg) => (
-                            <li key={msg._id} className="px-6 py-4 hover:bg-slate-800/50 transition-colors">
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-sm font-medium ${!msg.read ? 'text-white' : 'text-slate-300'}`}>{msg.name}</span>
-                                    <span className="text-xs text-slate-500">{new Date(msg.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <p className="text-xs text-slate-400 truncate">{msg.subject}</p>
-                            </li>
-                        ))}
-                        {(!stats?.recentMessages || stats.recentMessages.length === 0) && (
-                            <li className="px-6 py-8 text-center text-slate-500 text-sm">No new messages</li>
-                        )}
-                    </ul>
-                </div>
+            {/* Lists Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Recent Projects */}
-                <div className="bg-slate-800/50 backdrop-blur-md shadow-lg rounded-2xl border border-slate-700/50 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-700/50 flex items-center justify-between">
+                {/* Recent Projects - 1 Column */}
+                <motion.div variants={itemVariants} className="lg:col-span-1 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl border border-slate-700/50 flex flex-col h-[420px]">
+                    <div className="p-5 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50 rounded-t-2xl">
                         <div className="flex items-center gap-3">
-                            <Layers className="h-5 w-5 text-indigo-400" />
-                            <h3 className="text-lg leading-6 font-semibold text-slate-100">Recent Projects</h3>
+                            <div className="p-1.5 bg-indigo-500/10 rounded-lg"><Layers className="h-4 w-4 text-indigo-400" /></div>
+                            <h3 className="text-base font-semibold text-slate-100">Latest Builds</h3>
                         </div>
-                        <Link to="/admin/projects" className="text-xs font-medium text-cyan-400 hover:text-cyan-300">View All</Link>
                     </div>
-                    <ul className="divide-y divide-slate-700/50">
-                        {stats?.recentProjects?.map((project) => (
-                            <li key={project._id} className="px-6 py-4 hover:bg-slate-800/50 transition-colors flex items-center gap-4">
-                                <div className="h-10 w-10 rounded bg-slate-900 flex-shrink-0 overflow-hidden border border-slate-700">
-                                    {project.image ? (
-                                        <img src={project.image} alt="" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <div className="h-full w-full flex items-center justify-center text-slate-600"><Layers className="h-4 w-4" /></div>
-                                    )}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-slate-200">{project.title}</p>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${project.status === 'Published' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
-                                        {project.status || 'Published'}
-                                    </span>
-                                </div>
-                            </li>
-                        ))}
-                        {(!stats?.recentProjects || stats.recentProjects.length === 0) && (
-                            <li className="px-6 py-8 text-center text-slate-500 text-sm">No projects yet</li>
-                        )}
-                    </ul>
-                </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+                        <motion.ul variants={listContainerVariants} initial="hidden" animate="visible" className="space-y-1">
+                            {stats?.recentProjects?.map((project) => (
+                                <motion.li variants={listItemVariants} key={project._id} className="p-3 hover:bg-slate-700/30 rounded-xl transition-colors flex items-center gap-4 group">
+                                    <div className="h-10 w-10 rounded-lg bg-slate-900 flex-shrink-0 overflow-hidden border border-slate-700/50">
+                                        {project.image ? (
+                                            <img src={project.image} alt="" className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center text-slate-600"><Layers className="h-4 w-4" /></div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium text-slate-200 truncate">{project.title}</p>
+                                        <span className={`inline-flex items-center px-1.5 py-[1px] rounded text-[10px] font-medium mt-1 uppercase tracking-wider ${project.status === 'Published' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-400 border border-slate-600'}`}>
+                                            {project.status || 'Published'}
+                                        </span>
+                                    </div>
+                                </motion.li>
+                            ))}
+                            {(!stats?.recentProjects || stats.recentProjects.length === 0) && (
+                                <li className="px-6 py-12 text-center text-slate-500 text-sm flex flex-col items-center gap-2">
+                                    <Layers className="h-8 w-8 opacity-20" /> No projects found
+                                </li>
+                            )}
+                        </motion.ul>
+                    </div>
+                </motion.div>
+
+                {/* Recent Messages - 1 Column */}
+                <motion.div variants={itemVariants} className="lg:col-span-1 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl border border-slate-700/50 flex flex-col h-[420px]">
+                    <div className="p-5 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50 rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-purple-500/10 rounded-lg"><MessageSquare className="h-4 w-4 text-purple-400" /></div>
+                            <h3 className="text-base font-semibold text-slate-100">Inbox</h3>
+                        </div>
+                        {stats?.counts?.messages > 0 && <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-0.5 rounded-full border border-purple-500/20">{stats.counts.messages}</span>}
+                    </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+                        <motion.ul variants={listContainerVariants} initial="hidden" animate="visible" className="space-y-1">
+                            {stats?.recentMessages?.map((msg) => (
+                                <motion.li variants={listItemVariants} key={msg._id} className="p-4 hover:bg-slate-700/30 rounded-xl transition-colors relative">
+                                    {!msg.read && <span className="absolute left-2.5 top-5 w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse"></span>}
+                                    <div className="flex justify-between items-start mb-1 pl-3">
+                                        <span className={`text-sm tracking-tight ${!msg.read ? 'text-white font-semibold' : 'text-slate-300 font-medium'}`}>{msg.name}</span>
+                                        <span className="text-[10px] text-slate-500 font-mono tracking-tighter">{new Date(msg.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 truncate pl-3">{msg.subject}</p>
+                                </motion.li>
+                            ))}
+                            {(!stats?.recentMessages || stats.recentMessages.length === 0) && (
+                                <li className="px-6 py-12 text-center text-slate-500 text-sm flex flex-col items-center gap-2">
+                                    <MessageSquare className="h-8 w-8 opacity-20" /> No messages
+                                </li>
+                            )}
+                        </motion.ul>
+                    </div>
+                </motion.div>
+
+                {/* Recent Visitors - 1 Column */}
+                <motion.div variants={itemVariants} className="lg:col-span-1 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl border border-slate-700/50 flex flex-col h-[420px]">
+                    <div className="p-5 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50 rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-cyan-500/10 rounded-lg"><Activity className="h-4 w-4 text-cyan-400" /></div>
+                            <h3 className="text-base font-semibold text-slate-100">Live Traffic</h3>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-2">
+                        <motion.ul variants={listContainerVariants} initial="hidden" animate="visible" className="space-y-1">
+                            {stats?.recentVisitors?.map((visitor) => (
+                                <motion.li variants={listItemVariants} key={visitor._id} className="p-3 hover:bg-slate-700/30 rounded-xl transition-colors">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <div className="flex items-center gap-1.5 text-slate-300">
+                                            <MapPin className="w-3 h-3 text-cyan-500" />
+                                            <span className="text-sm font-mono">{visitor.ip || 'Unknown IP'}</span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded uppercase tracking-wider border border-slate-700">{visitor.path || '/'}</span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 truncate mt-1">
+                                        {new Date(visitor.timestamp).toLocaleString()} • {visitor.userAgent?.split(' ')[0] || 'Unknown Browser'}
+                                    </p>
+                                </motion.li>
+                            ))}
+                            {(!stats?.recentVisitors || stats.recentVisitors.length === 0) && (
+                                <li className="px-6 py-12 text-center text-slate-500 text-sm flex flex-col items-center gap-2">
+                                    <Activity className="h-8 w-8 opacity-20" /> No recent traffic
+                                </li>
+                            )}
+                        </motion.ul>
+                    </div>
+                </motion.div>
+
             </div>
-        </div>
+        </motion.div>
     );
 };
 

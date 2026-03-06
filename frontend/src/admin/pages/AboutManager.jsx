@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
 const AboutManager = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
@@ -29,7 +29,13 @@ const AboutManager = () => {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/timeline/all`);
+            const res = await fetch(`${API_URL}/api/about/all`, {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            if (res.status === 401) {
+                logout();
+                return;
+            }
             const data = await res.json();
             setItems(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -51,13 +57,21 @@ const AboutManager = () => {
         e.preventDefault();
         try {
             const method = currentId ? 'PUT' : 'POST';
-            const url = currentId ? `${API_URL}/api/timeline/${currentId}` : `${API_URL}/api/timeline`;
+            const url = currentId ? `${API_URL}/api/about/${currentId}` : `${API_URL}/api/about`;
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`
+                },
                 body: JSON.stringify(formData)
             });
+
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
 
             if (!res.ok) throw new Error('Failed to save item');
 
@@ -72,7 +86,18 @@ const AboutManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Delete this timeline item?')) return;
         try {
-            await fetch(`${API_URL}/api/timeline/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/api/about/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
+
+            if (!res.ok) throw new Error('Failed to delete');
+
             toast.success('Deleted successfully');
             fetchItems();
         } catch (error) {

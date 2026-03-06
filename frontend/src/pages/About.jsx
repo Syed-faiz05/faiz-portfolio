@@ -113,7 +113,7 @@ const About = () => {
 
     const fetchTimeline = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/timeline`);
+            const res = await fetch(`${API_URL}/api/about`);
             if (res.ok) {
                 const data = await res.json();
                 setTimelineData(data);
@@ -142,16 +142,86 @@ const About = () => {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="text-center mb-20 md:mb-32"
+                    className="text-center mb-16"
                 >
                     <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 mb-6 drop-shadow-sm">
                         My Journey
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-400 leading-relaxed">
-                        A timeline of my growth, learning, and milestones as a developer.
-                        Every step forward is a new lesson learned.
+                        A detailed look into my growth, learning, and milestones as a developer.
                     </p>
                 </motion.div>
+
+                {/* 🍱 START OF BENTO GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-32 max-w-5xl mx-auto">
+                    {/* Card 1: Core Bio (Takes 2 Columns) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="md:col-span-2 bg-slate-800/40 backdrop-blur-md rounded-3xl p-8 border border-slate-700/50 shadow-xl relative overflow-hidden group"
+                    >
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all duration-700"></div>
+                        <h3 className="text-xs font-bold tracking-widest text-cyan-500 uppercase mb-4">Who I Am</h3>
+                        <h2 className="text-3xl font-bold text-slate-100 mb-4 tracking-tight">Data to Decisions. Code to Production.</h2>
+                        <p className="text-slate-300 leading-relaxed max-w-lg relative z-10 text-lg">
+                            I am a B.Tech CSE student specializing in <span className="text-cyan-400 font-semibold">Data Science</span>.
+                            I don't just write scripts; I build end-to-end architectures that can collect, clean, analyze, and beautifully present data.
+                            I thrive at the intersection of complex algorithms and seamless user interfaces.
+                        </p>
+                    </motion.div>
+
+                    {/* Card 2: Location (1 Column) */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                        viewport={{ once: true }}
+                        className="bg-slate-800/40 backdrop-blur-md rounded-3xl p-8 border border-slate-700/50 flex flex-col items-center justify-center text-center shadow-xl hover:border-cyan-500/30 transition-all group"
+                    >
+                        <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-slate-700/50 group-hover:scale-110 transition-transform">
+                            <span className="text-3xl animate-bounce">📍</span>
+                        </div>
+                        <h4 className="text-xl font-bold text-slate-200">Bengaluru, India</h4>
+                        <p className="text-slate-400 text-sm mt-2">Available for Remote & Local Opportunities</p>
+                    </motion.div>
+
+                    {/* Card 3: Philosophy / Quote (Full Width Wide Card) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        viewport={{ once: true }}
+                        className="md:col-span-3 bg-gradient-to-br from-slate-900 via-slate-800/80 to-slate-900 rounded-3xl p-10 border border-slate-700/50 shadow-xl overflow-hidden relative group"
+                    >
+                        {/* Decorative Background grid lines */}
+                        <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 justify-between">
+                            <div className="flex-1">
+                                <h3 className="text-xl md:text-2xl font-semibold text-slate-300 leading-snug tracking-tight mb-4 border-l-4 border-cyan-500 pl-6 italic">
+                                    "In God we trust; all others must bring data."
+                                </h3>
+                                <p className="text-cyan-500 font-bold uppercase tracking-widest text-sm pl-6 flex items-center gap-2">
+                                    <span className="w-6 h-[2px] bg-cyan-500"></span> W. Edwards Deming
+                                </p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 shadow-lg group-hover:-translate-y-2 transition-transform duration-300">
+                                    <Target className="w-6 h-6" />
+                                </div>
+                                <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-purple-400 shadow-lg group-hover:-translate-y-2 transition-transform delay-75 duration-300">
+                                    <Award className="w-6 h-6" />
+                                </div>
+                                <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-blue-400 shadow-lg group-hover:-translate-y-2 transition-transform delay-150 duration-300">
+                                    <Rocket className="w-6 h-6" />
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+                {/* 🍱 END OF BENTO GRID */}
 
                 {/* Timeline Container */}
                 <div className="relative max-w-5xl mx-auto">
