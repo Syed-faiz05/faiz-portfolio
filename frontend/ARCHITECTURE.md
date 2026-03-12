@@ -301,6 +301,65 @@ export default defineConfig([
 
 ```
 
+### /package.json
+```json
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@cloudinary/react": "^1.14.4",
+    "@cloudinary/url-gen": "^1.22.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.57",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
+    "autoprefixer": "^10.4.24",
+    "clsx": "^2.1.1",
+    "course": "^0.0.1",
+    "framer-motion": "^12.29.2",
+    "lucide-react": "^0.563.0",
+    "mongodb": "^7.1.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.0",
+    "react-calendar-heatmap": "^1.10.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.13.0",
+    "react-scroll": "^1.9.3",
+    "rollup": "^4.59.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "lightningcss": "^1.31.1",
+    "vite": "^7.2.4"
+  }
+}
+
+```
+
 ### /src/admin/AdminLayout.jsx
 ```jsx
 import { Navigate, Outlet } from 'react-router-dom';
@@ -5930,6 +5989,9 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    cssMinify: 'esbuild'
   }
 })
 
