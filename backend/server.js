@@ -33,7 +33,6 @@ app.use(cors({
 
 // 3. Handle Preflight Properly
 app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
     res.header(
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
@@ -54,7 +53,11 @@ app.use((req, res, next) => {
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(
-            process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio'
+            process.env.MONGO_URI || 'mongodb://localhost:27017/portfolio',
+            {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            }
         );
         console.log(`MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
@@ -90,9 +93,16 @@ app.use('/api/messages', messageRoutes);
 // 7️⃣ LEETCODE PROXY
 // -----------------------------
 
+const leetcodeCache = {}; // Simple in-memory cache
+
 app.get('/api/leetcode/:username', async (req, res) => {
     try {
         const { username } = req.params;
+
+        // Check Cache limit API abuse
+        if (leetcodeCache[username] && Date.now() - leetcodeCache[username].timestamp < 3600000) { // 1 hour cache
+            return res.status(200).json(leetcodeCache[username].data);
+        }
 
         // ATTEMPT 1: Try the simple open API first
         try {
@@ -159,6 +169,12 @@ app.get('/api/leetcode/:username', async (req, res) => {
             ranking: user.profile.ranking || 0
         };
 
+        // Save to cache
+        leetcodeCache[username] = {
+            data: mappedData,
+            timestamp: Date.now()
+        };
+
         return res.status(200).json(mappedData);
 
     } catch (error) {
@@ -171,7 +187,18 @@ app.get('/api/leetcode/:username', async (req, res) => {
 });
 
 // -----------------------------
-// 8️⃣ START SERVER
+// 8️⃣ GLOBAL ERROR HANDLER
+// -----------------------------
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+
+    res.status(500).json({
+        message: "Internal Server Error"
+    });
+});
+
+// -----------------------------
+// 9️⃣ START SERVER
 // -----------------------------
 
 connectDB().then(() => {

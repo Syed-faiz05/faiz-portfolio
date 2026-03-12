@@ -25,6 +25,10 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ message: 'Please fill in all fields' });
     }
 
+    if (!email.includes("@")) {
+        return res.status(400).json({ message: "Invalid email" });
+    }
+
     try {
         const newMessage = await Message.create({
             name,

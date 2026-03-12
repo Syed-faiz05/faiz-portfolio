@@ -18,12 +18,9 @@ router.get('/', async (req, res) => {
 // @desc    Create a project (Admin)
 router.post('/', protect, async (req, res) => {
     try {
-        console.log('--- POST /api/projects ---');
-        // Conceal large image data in logs
-        const loggedBody = { ...req.body };
-        if (loggedBody.images && Array.isArray(loggedBody.images)) loggedBody.images = `Array(${loggedBody.images.length})`;
-        if (loggedBody.thumbnail && loggedBody.thumbnail.length > 100) loggedBody.thumbnail = '...thumbnail data...';
-        // console.log('Request Body:', loggedBody);
+        if (process.env.NODE_ENV === "development") {
+            console.log("Creating project...");
+        }
 
         const { images, tags, technologies, ...otherData } = req.body;
 
@@ -43,8 +40,14 @@ router.post('/', protect, async (req, res) => {
             technologies: processedTechs
         };
 
+        if (!projectData.title) {
+            return res.status(400).json({ message: "Project title required" });
+        }
+
         const project = await Project.create(projectData);
-        console.log('Project created successfully:', project._id);
+        if (process.env.NODE_ENV === "development") {
+            console.log('Project created successfully:', project._id);
+        }
         res.status(201).json(project);
     } catch (error) {
         console.error('Project Create Error:', error);

@@ -11,11 +11,19 @@ const { protect } = require('../middleware/authMiddleware');
 // @desc    Get dashboard stats (Admin)
 router.get('/stats', protect, async (req, res) => {
     try {
-        const totalProjects = await Project.countDocuments();
-        const totalSkills = await Skill.countDocuments();
-        const totalMessages = await Message.countDocuments();
-        const totalVisitors = await Visitor.countDocuments();
-        const totalMilestones = await TimelineItem.countDocuments();
+        const [
+            totalProjects,
+            totalSkills,
+            totalMessages,
+            totalVisitors,
+            totalMilestones
+        ] = await Promise.all([
+            Project.countDocuments(),
+            Skill.countDocuments(),
+            Message.countDocuments(),
+            Visitor.countDocuments(),
+            TimelineItem.countDocuments()
+        ]);
 
         // Recent Items
         const latestMessages = await Message.find().sort({ createdAt: -1 }).limit(5);

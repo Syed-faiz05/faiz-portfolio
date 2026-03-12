@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const uri = "mongodb+srv://syedfaiz052004_db_user:hGLkU4ClktChwxug@cluster0.amwst5g.mongodb.net/";
+require('dotenv').config();
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 async function run() {
     try {

@@ -8,18 +8,21 @@ mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://
     .then(async () => {
         console.log('MongoDB successfully connected for seeding');
 
-        const adminExists = await Admin.findOne({ username: 'admin' });
+        const adminUsername = process.env.ADMIN_USERNAME || 'faiz';
+        const adminPassword = process.env.ADMIN_PASSWORD || '123456';
+
+        const adminExists = await Admin.findOne({ username: adminUsername });
         if (adminExists) {
             console.log('Admin already exists');
             process.exit();
         }
 
         await Admin.create({
-            username: 'admin',
-            password: 'password123' // This will be hashed by the model pre-save hook
+            username: adminUsername,
+            password: adminPassword // This will be hashed by the model pre-save hook
         });
 
-        console.log('Admin user created: admin / password123');
+        console.log(`Admin user created: ${adminUsername} / [HIDDEN]`);
         process.exit();
     })
     .catch((err) => {
