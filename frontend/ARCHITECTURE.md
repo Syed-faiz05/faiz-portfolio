@@ -1,375 +1,29 @@
-# Frontend Architecture & Documentation
+# Frontend Architecture & Full Codebase Dump
 
-This folder contains the React frontend for the Portfolio CMS. It is built using **React, Vite, Tailwind CSS, Framer Motion**, and communicates with the Node.js backend to display data dynamically. It features a public-facing portfolio and a secure `/admin` dashboard for full CRUD management.
+This document contains the complete codebase for the frontend as of the latest update.
 
-## 📁 1. Full Folder Structure
-
-```text
-/frontend
-│── .env                 # Environment variables (e.g., VITE_API_URL)
-│── index.html           # Main HTML entry point
-│── package.json         # Dependencies and scripts (React, Vite, Tailwind, etc.)
-│── vite.config.js       # Vite build configuration
-│── tailwind.config.js   # Tailwind CSS configuration overrides
-│
-└── /src
-    │── App.jsx          # Main application router (Public vs Admin layouts)
-    │── main.jsx         # React DOM rendering entry point
-    │── index.css        # Global CSS and Tailwind directives
-    │── config.js        # API base URL configuration based on environment
-    │
-    ├── /assets          # Static image assets and icons
-    │
-    ├── /components      # Reusable UI component blocks
-    │   ├── About.jsx
-    │   ├── Contact.jsx
-    │   ├── Footer.jsx
-    │   ├── GithubIsometric.jsx
-    │   ├── GithubIsometric.css
-    │   ├── LeetCodeActivity.jsx
-    │   ├── LeetCodeActivity.css
-    │   ├── LeetCodeHeatmap.jsx
-    │   ├── Navbar.jsx
-    │   ├── NetworkParticles.jsx
-    │   ├── ParticleBackground.jsx
-    │   ├── Projects.jsx
-    │   ├── Skills.jsx
-    │   ├── StarField.jsx
-    │   └── ui/          # Standardized Base UI (Buttons, Inputs, etc.)
-    │
-    ├── /context         # React Context Providers for global state
-    │   └── AuthContext.jsx # Manages Admin login state and JWT
-    │
-    ├── /pages           # Public Portfolio Pages
-    │   ├── AboutPage.jsx
-    │   ├── AdminPage.jsx
-    │   ├── ContactPage.jsx
-    │   ├── Home.jsx
-    │   ├── ProjectsPage.jsx
-    │   └── SkillsPage.jsx
-    │
-    └── /admin           # Protected Admin Dashboard System
-        ├── AdminLayout.jsx # Dashboard Sidebar & Topbar Wrapper
-        └── /pages       # Admin CRUD interfaces (Animated via Framer Motion)
-            ├── AboutManager.jsx (Timeline)
-            ├── Achievements.jsx
-            ├── Blog.jsx
-            ├── Dashboard.jsx
-            ├── Messages.jsx
-            ├── ProjectManager.jsx
-            ├── Settings.jsx
-            └── SkillManager.jsx
-```
-
----
-
-## 💻 2. Core Architecture Code
-
-The following sections define how the frontend application is wired together. If you are applying this structure elsewhere, these files form the foundation.
-
-### A. Environment & API Configuration (`src/config.js`)
-Handles the API URL switching automatically between local development and production deployments.
-
-```javascript
-// src/config.js
-const API_URL = import.meta.env.MODE === 'development' 
-    ? 'http://localhost:5000' 
-    : 'https://your-production-backend-url.com'; // Adjust for deployment
-
-export default API_URL;
-```
-
-### B. Global Router & Layout (`src/App.jsx`)
-Handles routing for both the public-facing pages and the restricted `/admin` dashboard.
-
-```jsx
-// src/App.jsx
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { Toaster } from 'react-hot-toast';
-
-// Public Components
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import About from './pages/About';
-import ProjectsPage from './pages/ProjectsPage';
-
-// Admin Components
-import AdminLayout from './admin/AdminLayout';
-import Dashboard from './admin/pages/Dashboard';
-import ProjectManager from './admin/pages/ProjectManager';
-// ... other admin imports
-
-// Public Layout Wrapper
-const MainLayout = () => (
-  <div className="relative min-h-screen text-white bg-slate-900">
-    <Navbar />
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/projects" element={<ProjectsPage />} />
-      {/* ... other public routes */}
-    </Routes>
-    <Footer />
-  </div>
-);
-
-function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <Toaster position="bottom-right" />
-        <Routes>
-          {/* Admin Routes - Bound inside the AdminLayout Sidebar wrapper */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="projects" element={<ProjectManager />} />
-            {/* ... other admin routes */}
-          </Route>
-
-          {/* Public Routes - Main Layout */}
-          <Route path="/*" element={<MainLayout />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  );
-}
-
-export default App;
-```
-
-### C. Authentication Context (`src/context/AuthContext.jsx`)
-Manages the JWT authorization state token for admin users traversing the site and prevents unauthorized access to the `/admin` panel.
-
-```jsx
-// src/context/AuthContext.jsx
-import { createContext, useState, useContext, useEffect } from 'react';
-
-const AuthContext = createContext(null);
-
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Hydrate from localStorage on initial load
-        const token = localStorage.getItem('adminToken');
-        if (token) {
-            setUser({ token });
-        }
-        setLoading(false);
-    }, []);
-
-    const login = (token) => {
-        localStorage.setItem('adminToken', token);
-        setUser({ token });
-    };
-
-    const logout = () => {
-        localStorage.removeItem('adminToken');
-        setUser(null);
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
-
-export const useAuth = () => useContext(AuthContext);
-```
-
-### D. Generic Data Fetching Pattern
-Throughout the frontend (both Admin and Public forms), you fetch and interact with data using the native `fetch` API wrapping the preconfigured `API_URL`.
-
-**Example: Fetching public data in a Component**
-```jsx
-import { useState, useEffect } from 'react';
-import API_URL from '../config';
-
-const PublicDataComponent = () => {
-    const [data, setData] = useState([]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const res = await fetch(`${API_URL}/api/projects`);
-                const json = await res.json();
-                setData(json);
-            } catch (err) {
-                console.error("Failed to load projects", err);
-            }
-        };
-        loadData();
-    }, []);
-
-    return <div>{/* Map over data to display list */}</div>;
-}
-```
-
-**Example: Sending Authenticated Admin Data**
-```jsx
-// Example Delete Action inside Admin Panel
-const handleDelete = async (id) => {
-    try {
-        const token = localStorage.getItem('adminToken');
-        await fetch(`${API_URL}/api/projects/${id}`, { 
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}` // Include JWT
-            }
-        });
-        // refresh local list state...
-    } catch (err) {
-        console.error("Delete failed");
-    }
-};
-```
-
----
-
-## ⚡ Deployment Instructions (Vercel/Netlify)
-
-1. Make sure your `.env` contains the production backend URL (or configure it securely in your Vercel Dashboard directly under Environment Variables). Example:
-   `VITE_API_URL=https://my-backend-api.onrender.com`
-2. Push your code to GitHub.
-3. Import the project repository into **Vercel** or **Netlify**.
-4. Set the Framework Preset to **Vite**.
-5. Set the Build Command to `npm run build` and output directory to `dist`.
-6. Deploy! Make sure your Backend allows CORS requests from your newly generated frontend URL.
-## 📦 3. Full Codebase Dump
-
-The following section contains the full code for every file in the Frontend to allow for easy copying.
-
-### /eslint.config.js
-```javascript
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{js,jsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
-      },
-    },
-    rules: {
-      'no-unused-vars': ['error', {
-        varsIgnorePattern: '^[A-Z_]|motion|timestamp|count|scaleY|user|error|loading|useAuth|Icon',
-        argsIgnorePattern: '^_|error|Icon',
-        caughtErrorsIgnorePattern: '^error'
-      }],
-      'react-hooks/set-state-in-effect': 'off',
-    },
-  },
-])
-
-```
-
-### /index.html
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-
-```
-
-### /package.json
-```json
-{
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@cloudinary/react": "^1.14.4",
-    "@cloudinary/url-gen": "^1.22.0",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
-    "@react-three/postprocessing": "^3.0.4",
-    "@splinetool/react-spline": "^4.1.0",
-    "@splinetool/runtime": "^1.12.57",
-    "@tailwindcss/postcss": "^4.1.18",
-    "@tsparticles/react": "^3.0.0",
-    "@tsparticles/slim": "^3.9.1",
-    "autoprefixer": "^10.4.24",
-    "clsx": "^2.1.1",
-    "course": "^0.0.1",
-    "framer-motion": "^12.29.2",
-    "lucide-react": "^0.563.0",
-    "mongodb": "^7.1.0",
-    "postcss": "^8.5.6",
-    "react": "^19.2.0",
-    "react-calendar-heatmap": "^1.10.0",
-    "react-dom": "^19.2.0",
-    "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.13.0",
-    "react-scroll": "^1.9.3",
-    "rollup": "^4.59.0",
-    "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18",
-    "three": "^0.182.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@tailwindcss/vite": "^4.1.18",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "lightningcss": "^1.31.1",
-    "vite": "^7.2.4"
-  }
-}
-
-```
-
-### /src/admin/AdminLayout.jsx
+## src/admin/AdminLayout.jsx
 ```jsx
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
+import { Loader2 } from 'lucide-react';
 
 const AdminLayout = () => {
-    // Auth check removed as requested
+    const { user, loading } = useAuth();
 
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <Navigate to="/admin/login" replace />;
+    }
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans">
@@ -392,7 +46,7 @@ export default AdminLayout;
 
 ```
 
-### /src/admin/components/Sidebar.jsx
+## src/admin/components/Sidebar.jsx
 ```jsx
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FolderKanban, Wrench, Settings, LogOut, MessageSquare, Award, BookOpen, Clock } from 'lucide-react';
@@ -464,7 +118,7 @@ export default Sidebar;
 
 ```
 
-### /src/admin/components/Topbar.jsx
+## src/admin/components/Topbar.jsx
 ```jsx
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Bell, Search } from 'lucide-react';
@@ -540,7 +194,7 @@ export default Topbar;
 
 ```
 
-### /src/admin/components/ui/Button.jsx
+## src/admin/components/ui/Button.jsx
 ```jsx
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
@@ -590,7 +244,7 @@ export default Button;
 
 ```
 
-### /src/admin/components/ui/Input.jsx
+## src/admin/components/ui/Input.jsx
 ```jsx
 import { cn } from '../../../lib/utils';
 
@@ -635,13 +289,13 @@ export default Input;
 
 ```
 
-### /src/admin/pages/AboutManager.jsx
+## src/admin/pages/AboutManager.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Plus, Trash2, Edit2, GripVertical, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, CheckCircle, XCircle, Upload, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
@@ -659,7 +313,9 @@ const AboutManager = () => {
         description: '',
         type: 'experience',
         isVisible: true,
-        order: 0
+        order: 0,
+        image: null,
+        imagePreview: ''
     });
 
     useEffect(() => {
@@ -692,11 +348,35 @@ const AboutManager = () => {
         }));
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    image: reader.result,
+                    imagePreview: reader.result
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const method = currentId ? 'PUT' : 'POST';
             const url = currentId ? `${API_URL}/api/about/${currentId}` : `${API_URL}/api/about`;
+
+            const payload = {
+                ...formData,
+                image: formData.image || ''
+            };
 
             const res = await fetch(url, {
                 method,
@@ -704,7 +384,7 @@ const AboutManager = () => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${user.token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.status === 401) {
@@ -754,7 +434,9 @@ const AboutManager = () => {
             description: item.description || '',
             type: item.type || 'experience',
             isVisible: item.isVisible,
-            order: item.order || 0
+            order: item.order || 0,
+            image: null,
+            imagePreview: item.image || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -764,7 +446,8 @@ const AboutManager = () => {
         setCurrentId(null);
         setFormData({
             period: '', title: '', subtitle: '', description: '',
-            type: 'experience', isVisible: true, order: items.length + 1
+            type: 'experience', isVisible: true, order: items.length + 1,
+            image: null, imagePreview: ''
         });
     };
 
@@ -825,6 +508,37 @@ const AboutManager = () => {
                             </div>
                         </div>
 
+                        {/* Image Upload */}
+                        <div className="border-t border-slate-700/50 pt-6">
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Timeline Image (Optional)</label>
+                            <div className="flex items-start gap-4">
+                                <div className="relative flex-1 h-32 border-2 border-dashed border-slate-700 rounded-xl hover:border-cyan-500/50 transition-colors bg-slate-900/30 flex flex-col items-center justify-center text-center group">
+                                    <input
+                                        type="file"
+                                        onChange={handleImageChange}
+                                        accept="image/*"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <Upload className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 transition-colors mb-2" />
+                                    <p className="text-xs text-slate-400 group-hover:text-slate-300">
+                                        <span className="font-semibold text-cyan-400">Click to upload</span> or drag and drop
+                                    </p>
+                                </div>
+                                {formData.imagePreview && (
+                                    <div className="h-32 w-32 relative rounded-xl overflow-hidden border border-slate-700 shadow-lg shrink-0">
+                                        <img src={formData.imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, image: null, imagePreview: '' }))}
+                                            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity z-20"
+                                        >
+                                            <X className="h-6 w-6" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
                             <Button type="button" variant="ghost" onClick={resetForm}>Cancel</Button>
                             <Button type="submit">Save Milestone</Button>
@@ -873,7 +587,7 @@ export default AboutManager;
 
 ```
 
-### /src/admin/pages/Achievements.jsx
+## src/admin/pages/Achievements.jsx
 ```jsx
 import { Award } from 'lucide-react';
 
@@ -902,7 +616,7 @@ export default Achievements;
 
 ```
 
-### /src/admin/pages/Blog.jsx
+## src/admin/pages/Blog.jsx
 ```jsx
 import { BookOpen } from 'lucide-react';
 
@@ -931,7 +645,7 @@ export default Blog;
 
 ```
 
-### /src/admin/pages/Dashboard.jsx
+## src/admin/pages/Dashboard.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -1010,7 +724,7 @@ const QuickActionBtn = ({ label, icon: Icon, to, color }) => (
 );
 
 const Dashboard = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -1020,6 +734,11 @@ const Dashboard = () => {
                 const res = await fetch(`${API_URL}/api/dashboard/stats`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
+
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
 
                 if (res.ok) {
                     const data = await res.json();
@@ -1198,7 +917,128 @@ export default Dashboard;
 
 ```
 
-### /src/admin/pages/Messages.jsx
+## src/admin/pages/Login.jsx
+```jsx
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { motion } from 'framer-motion';
+import { Lock, User, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+const Login = () => {
+    const [credentials, setCredentials] = useState({ username: '', password: '' });
+    const [submitting, setSubmitting] = useState(false);
+    const { login } = useAuth();
+    const navigate = useNavigate();
+
+    const handleChange = (e) => {
+        setCredentials(prev => ({
+            ...prev,
+            [e.target.name]: e.target.value
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+
+        const result = await login(credentials.username, credentials.password);
+
+        if (result.success) {
+            toast.success('Welcome back, Admin!');
+            navigate('/admin/dashboard');
+        } else {
+            toast.error(result.error || 'Invalid credentials');
+        }
+
+        setSubmitting(false);
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_var(--tw-gradient-stops))] from-cyan-900/20 via-slate-950 to-slate-950" />
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="relative w-full max-w-md p-8 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl z-10"
+            >
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                        System Access
+                    </h1>
+                    <p className="text-slate-400 mt-2 text-sm">Please identify yourself to proceed</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Username</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <User className="h-5 w-5 text-slate-500" />
+                            </div>
+                            <input
+                                type="text"
+                                name="username"
+                                value={credentials.username}
+                                onChange={handleChange}
+                                required
+                                className="block w-full pl-10 px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all"
+                                placeholder="..."
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Lock className="h-5 w-5 text-slate-500" />
+                            </div>
+                            <input
+                                type="password"
+                                name="password"
+                                value={credentials.password}
+                                onChange={handleChange}
+                                required
+                                className="block w-full pl-10 px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full relative group overflow-hidden bg-cyan-500 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center transition-all disabled:opacity-70"
+                    >
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="relative flex items-center gap-2">
+                            {submitting ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Authenticating...
+                                </>
+                            ) : (
+                                'Login'
+                            )}
+                        </span>
+                    </button>
+
+                </form>
+            </motion.div>
+        </div>
+    );
+};
+
+export default Login;
+
+```
+
+## src/admin/pages/Messages.jsx
 ```jsx
 
 import { useState, useEffect } from 'react';
@@ -1410,7 +1250,7 @@ export default Messages;
 
 ```
 
-### /src/admin/pages/ProjectManager.jsx
+## src/admin/pages/ProjectManager.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -1421,7 +1261,7 @@ import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
 const ProjectManager = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
@@ -1511,6 +1351,11 @@ const ProjectManager = () => {
                 body: JSON.stringify(payload)
             });
 
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
+
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || 'Failed to save project');
@@ -1530,10 +1375,16 @@ const ProjectManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Delete this project?')) return;
         try {
-            await fetch(`${API_URL}/api/projects/${id}`, {
+            const res = await fetch(`${API_URL}/api/projects/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
+
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
+
             toast.success('Project deleted');
             fetchProjects();
         } catch (error) {
@@ -1744,7 +1595,7 @@ export default ProjectManager;
 
 ```
 
-### /src/admin/pages/Settings.jsx
+## src/admin/pages/Settings.jsx
 ```jsx
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -1859,7 +1710,7 @@ export default Settings;
 
 ```
 
-### /src/admin/pages/SkillManager.jsx
+## src/admin/pages/SkillManager.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -2102,54 +1953,7 @@ export default SkillManager;
 
 ```
 
-### /src/App.css
-```css
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-```
-
-### /src/App.jsx
+## src/App.jsx
 ```jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -2172,6 +1976,7 @@ import Achievements from './admin/pages/Achievements';
 import Blog from './admin/pages/Blog';
 import Messages from './admin/pages/Messages';
 import Settings from './admin/pages/Settings';
+import Login from './admin/pages/Login';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -2182,7 +1987,7 @@ function App() {
         <Toaster position="bottom-right" />
         <Routes>
           {/* Admin Routes */}
-
+          <Route path="/admin/login" element={<Login />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -2223,7 +2028,7 @@ export default App;
 
 ```
 
-### /src/components/About.jsx
+## src/components/About.jsx
 ```jsx
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
@@ -2577,7 +2382,7 @@ function ChromeAberration() {
 
 ```
 
-### /src/components/Contact.jsx
+## src/components/Contact.jsx
 ```jsx
 import { motion } from 'framer-motion';
 import { Mail } from 'lucide-react';
@@ -2614,7 +2419,7 @@ export default Contact;
 
 ```
 
-### /src/components/Footer.jsx
+## src/components/Footer.jsx
 ```jsx
 import { Github, Linkedin, Mail, Code2 } from 'lucide-react';
 
@@ -2658,76 +2463,7 @@ export default Footer;
 
 ```
 
-### /src/components/GithubIsometric.css
-```css
-/* ISO PILLAR ANIMATION */
-.iso-pillar {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    transform-style: preserve-3d;
-}
-
-/* On hover, move the ENTIRE pillar up */
-.iso-block-wrapper:hover .iso-pillar {
-    transform: translateZ(15px);
-}
-
-/* Enhance shadows on hover */
-.iso-block-wrapper:hover .iso-pillar>div:first-child {
-    box-shadow: 0 0 15px var(--glow-color, rgba(74, 222, 128, 0.4));
-    border-color: rgba(255, 255, 255, 0.8);
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.8);
-    border-radius: 4px;
-}
-
-.stat-highlight {
-    color: #4ade80 !important;
-    text-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
-}
-
-.stat-item h4 {
-    color: #94a3b8;
-    font-size: 0.85rem;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-}
-
-.stat-item .value {
-    font-size: 2.5rem;
-    font-weight: 300;
-    color: #fff;
-    line-height: 1;
-}
-
-.stat-item .meta {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-/* Tooltip Animation */
-.tooltip-container {
-    transition: opacity 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
-    white-space: nowrap;
-}
-```
-
-### /src/components/GithubIsometric.jsx
+## src/components/GithubIsometric.jsx
 ```jsx
 import { useEffect, useState, useMemo, useRef } from 'react';
 import './GithubIsometric.css';
@@ -3098,198 +2834,7 @@ export default GithubIsometric;
 
 ```
 
-### /src/components/LeetCodeActivity.css
-```css
-/* Container Styles */
-.leetcode-container {
-    background: rgba(10, 10, 10, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 25px;
-    width: 100%;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.leetcode-container:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.leetcode-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    color: var(--text-primary, #fff);
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-/* Stats Badges */
-.leetcode-header span {
-    font-size: 0.85rem;
-    color: var(--text-secondary, #aaa);
-    font-weight: 500;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* View Profile Button */
-.view-profile-btn {
-    font-size: 0.85rem;
-    color: #fff;
-    background: linear-gradient(135deg, #ffa116, #f29304);
-    padding: 6px 16px;
-    border-radius: 20px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    white-space: nowrap;
-}
-
-.view-profile-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 161, 22, 0.3);
-}
-
-/* Heatmap Wrapper */
-.heatmap-wrapper {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 10px;
-}
-
-.heatmap-wrapper::-webkit-scrollbar {
-    height: 6px;
-}
-
-.heatmap-wrapper::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
-
-.heatmap-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
-
-/* React Calendar Heatmap Overrides */
-.react-calendar-heatmap {
-    width: 100%;
-    min-width: 800px;
-    height: 140px;
-    font-family: inherit;
-}
-
-.react-calendar-heatmap text {
-    font-size: 10px;
-    fill: #888;
-    font-weight: 500;
-}
-
-.react-calendar-heatmap .react-calendar-heatmap-month-label {
-    font-size: 11px;
-    fill: #ccc;
-    font-weight: 600;
-}
-
-.react-calendar-heatmap .react-calendar-heatmap-weekday-label {
-    font-size: 9px;
-    fill: #888;
-}
-
-.react-calendar-heatmap rect {
-    rx: 2px;
-    ry: 2px;
-    transition: all 0.2s ease;
-    stroke: transparent;
-    stroke-width: 1px;
-}
-
-.react-calendar-heatmap rect:hover {
-    stroke: rgba(34, 211, 238, 0.6);
-    stroke-width: 2px;
-    transform: scale(1.1);
-}
-
-/* Color Scales with Glow */
-.react-calendar-heatmap .color-empty {
-    fill: #1f2937;
-}
-
-/* Level 1 */
-.react-calendar-heatmap .color-github-1 {
-    fill: #0e4429;
-}
-
-/* Level 2 */
-.react-calendar-heatmap .color-github-2 {
-    fill: #26a641;
-}
-
-/* Level 3 */
-.react-calendar-heatmap .color-github-3 {
-    fill: #39d353;
-    filter: drop-shadow(0 0 3px rgba(57, 211, 83, 0.4));
-}
-
-/* Level 4 (Max) - Strong Glow */
-.react-calendar-heatmap .color-github-4 {
-    fill: #4ade80;
-    filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.6));
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .leetcode-container {
-        padding: 20px 15px;
-    }
-
-    .leetcode-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .leetcode-header h2 {
-        font-size: 1.25rem !important;
-    }
-
-    .header-actions {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .leetcode-header span {
-        font-size: 0.75rem;
-        padding: 5px 10px;
-    }
-
-    .view-profile-btn {
-        font-size: 0.75rem;
-        padding: 5px 14px;
-    }
-
-    .react-calendar-heatmap {
-        height: 120px;
-        min-width: 700px;
-    }
-}
-```
-
-### /src/components/LeetCodeActivity.jsx
+## src/components/LeetCodeActivity.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import CalendarHeatmap from 'react-calendar-heatmap';
@@ -3457,7 +3002,7 @@ export default LeetCodeActivity;
 
 ```
 
-### /src/components/LeetCodeHeatmap.jsx
+## src/components/LeetCodeHeatmap.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -3683,7 +3228,7 @@ export default LeetCodeRings;
 
 ```
 
-### /src/components/Navbar.jsx
+## src/components/Navbar.jsx
 ```jsx
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -3778,7 +3323,7 @@ export default Navbar;
 
 ```
 
-### /src/components/NetworkParticles.jsx
+## src/components/NetworkParticles.jsx
 ```jsx
 import { useEffect, useRef } from 'react';
 
@@ -3886,7 +3431,7 @@ export default NetworkParticles;
 
 ```
 
-### /src/components/ParticleBackground.jsx
+## src/components/ParticleBackground.jsx
 ```jsx
 import { useEffect, useMemo, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
@@ -3993,7 +3538,7 @@ export default ParticleBackground;
 
 ```
 
-### /src/components/Projects.jsx
+## src/components/Projects.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -4203,7 +3748,7 @@ export default Projects;
 
 ```
 
-### /src/components/Skills.jsx
+## src/components/Skills.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -4277,7 +3822,7 @@ export default Skills;
 
 ```
 
-### /src/components/StarField.jsx
+## src/components/StarField.jsx
 ```jsx
 import { useEffect, useState } from 'react';
 
@@ -4327,7 +3872,7 @@ export default StarField;
 
 ```
 
-### /src/config.js
+## src/config.js
 ```javascript
 const API_URL = import.meta.env.VITE_API_URL || 'https://faiz-portfolio-jpb2.onrender.com';
 
@@ -4335,7 +3880,7 @@ export default API_URL;
 
 ```
 
-### /src/context/AuthContext.jsx
+## src/context/AuthContext.jsx
 ```jsx
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useContext } from 'react';
@@ -4414,106 +3959,7 @@ export const AuthProvider = ({ children }) => {
 
 ```
 
-### /src/index.css
-```css
-@import "tailwindcss";
-
-* {
-    scroll-behavior: smooth;
-}
-
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-        monospace;
-}
-
-/* Scroll Animation */
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(10px);
-    }
-}
-
-.scroll-indicator {
-    animation: bounce 2s infinite;
-}
-
-/* Modern Mouse Scroll Animation */
-@keyframes scroll-drop {
-    0% {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-        height: 6px;
-    }
-
-    40% {
-        height: 10px;
-    }
-
-    100% {
-        transform: translateX(-50%) translateY(20px);
-        opacity: 0;
-        height: 4px;
-    }
-}
-
-.mouse-scroll {
-    width: 24px;
-    height: 40px;
-    border: 2px solid rgba(148, 163, 184, 0.4);
-    border-radius: 12px;
-    position: relative;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-.mouse-scroll-wheel {
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 6px;
-    background-color: #22d3ee;
-    border-radius: 2px;
-    animation: scroll-drop 1.5s infinite cubic-bezier(0.77, 0, 0.175, 1);
-}
-
-/* Star Twinkle Animation */
-@keyframes twinkle {
-
-    0%,
-    100% {
-        opacity: 0.3;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-.animate-twinkle {
-    animation: twinkle 3s ease-in-out infinite;
-}
-```
-
-### /src/lib/utils.js
+## src/lib/utils.js
 ```javascript
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -4524,7 +3970,7 @@ export function cn(...inputs) {
 
 ```
 
-### /src/main.jsx
+## src/main.jsx
 ```jsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -4539,7 +3985,7 @@ createRoot(document.getElementById('root')).render(
 
 ```
 
-### /src/pages/About.jsx
+## src/pages/About.jsx
 ```jsx
 import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useSpring } from 'framer-motion';
@@ -4628,6 +4074,12 @@ const TimelineNode = ({ item, index }) => {
                         <h4 className="text-sm font-medium text-slate-400 mb-3">
                             {item.subtitle}
                         </h4>
+                    )}
+
+                    {item.image && (
+                        <div className="mb-4 rounded-xl overflow-hidden shadow-lg border border-slate-700/50">
+                            <img src={item.image} alt={item.title} className="w-full h-auto object-cover max-h-48 hover:scale-105 transition-transform duration-500" />
+                        </div>
                     )}
 
                     <p className="text-slate-300 text-sm leading-relaxed">
@@ -4820,7 +4272,7 @@ export default About;
 
 ```
 
-### /src/pages/AboutPage.jsx
+## src/pages/AboutPage.jsx
 ```jsx
 import About from '../components/About';
 
@@ -4836,7 +4288,7 @@ export default AboutPage;
 
 ```
 
-### /src/pages/AdminPage.jsx
+## src/pages/AdminPage.jsx
 ```jsx
 
 import { useState, useEffect } from 'react';
@@ -5167,7 +4619,7 @@ export default AdminPage;
 
 ```
 
-### /src/pages/ContactPage.jsx
+## src/pages/ContactPage.jsx
 ```jsx
 import { motion } from 'framer-motion';
 import { Github, Linkedin, Mail, Download } from 'lucide-react';
@@ -5262,7 +4714,7 @@ export default ContactPage;
 
 ```
 
-### /src/pages/Home.jsx
+## src/pages/Home.jsx
 ```jsx
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -5542,7 +4994,7 @@ export default Home;
 
 ```
 
-### /src/pages/ProjectsPage.jsx
+## src/pages/ProjectsPage.jsx
 ```jsx
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -5956,7 +5408,7 @@ export default ProjectsPage;
 
 ```
 
-### /src/pages/SkillsPage.jsx
+## src/pages/SkillsPage.jsx
 ```jsx
 import Skills from '../components/Skills';
 
@@ -5972,7 +5424,66 @@ export default SkillsPage;
 
 ```
 
-### /vite.config.js
+## package.json
+```json
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@cloudinary/react": "^1.14.4",
+    "@cloudinary/url-gen": "^1.22.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.57",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
+    "autoprefixer": "^10.4.24",
+    "clsx": "^2.1.1",
+    "course": "^0.0.1",
+    "framer-motion": "^12.29.2",
+    "lucide-react": "^0.563.0",
+    "mongodb": "^7.1.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.0",
+    "react-calendar-heatmap": "^1.10.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.13.0",
+    "react-scroll": "^1.9.3",
+    "rollup": "^4.59.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.18",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "lightningcss": "^1.31.1",
+    "vite": "^7.2.4"
+  }
+}
+
+```
+
+## vite.config.js
 ```javascript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -5994,6 +5505,12 @@ export default defineConfig({
     cssMinify: 'esbuild'
   }
 })
+
+```
+
+## .env
+```text
+VITE_API_URL=https://faiz-portfolio-juk6.onrender.com
 
 ```
 

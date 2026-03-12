@@ -19,6 +19,7 @@ import Achievements from './admin/pages/Achievements';
 import Blog from './admin/pages/Blog';
 import Messages from './admin/pages/Messages';
 import Settings from './admin/pages/Settings';
+import Login from './admin/pages/Login';
 
 import { Toaster } from 'react-hot-toast';
 
@@ -29,7 +30,7 @@ function App() {
         <Toaster position="bottom-right" />
         <Routes>
           {/* Admin Routes */}
-
+          <Route path="/admin/login" element={<Login />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="dashboard" replace />} />

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
 const ProjectManager = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
@@ -97,6 +97,11 @@ const ProjectManager = () => {
                 body: JSON.stringify(payload)
             });
 
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
+
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || 'Failed to save project');
@@ -116,10 +121,16 @@ const ProjectManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Delete this project?')) return;
         try {
-            await fetch(`${API_URL}/api/projects/${id}`, {
+            const res = await fetch(`${API_URL}/api/projects/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
+
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired. Please login again.');
+            }
+
             toast.success('Project deleted');
             fetchProjects();
         } catch (error) {

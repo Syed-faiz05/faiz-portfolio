@@ -75,7 +75,7 @@ const QuickActionBtn = ({ label, icon: Icon, to, color }) => (
 );
 
 const Dashboard = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -85,6 +85,11 @@ const Dashboard = () => {
                 const res = await fetch(`${API_URL}/api/dashboard/stats`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
+
+                if (res.status === 401) {
+                    logout();
+                    return;
+                }
 
                 if (res.ok) {
                     const data = await res.json();

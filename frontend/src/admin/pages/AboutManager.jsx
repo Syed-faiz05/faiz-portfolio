@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { Plus, Trash2, Edit2, GripVertical, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, CheckCircle, XCircle, Upload, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
@@ -20,7 +20,9 @@ const AboutManager = () => {
         description: '',
         type: 'experience',
         isVisible: true,
-        order: 0
+        order: 0,
+        image: null,
+        imagePreview: ''
     });
 
     useEffect(() => {
@@ -53,11 +55,35 @@ const AboutManager = () => {
         }));
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    image: reader.result,
+                    imagePreview: reader.result
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const method = currentId ? 'PUT' : 'POST';
             const url = currentId ? `${API_URL}/api/about/${currentId}` : `${API_URL}/api/about`;
+
+            const payload = {
+                ...formData,
+                image: formData.image || ''
+            };
 
             const res = await fetch(url, {
                 method,
@@ -65,7 +91,7 @@ const AboutManager = () => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${user.token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.status === 401) {
@@ -115,7 +141,9 @@ const AboutManager = () => {
             description: item.description || '',
             type: item.type || 'experience',
             isVisible: item.isVisible,
-            order: item.order || 0
+            order: item.order || 0,
+            image: null,
+            imagePreview: item.image || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -125,7 +153,8 @@ const AboutManager = () => {
         setCurrentId(null);
         setFormData({
             period: '', title: '', subtitle: '', description: '',
-            type: 'experience', isVisible: true, order: items.length + 1
+            type: 'experience', isVisible: true, order: items.length + 1,
+            image: null, imagePreview: ''
         });
     };
 
@@ -183,6 +212,37 @@ const AboutManager = () => {
                             <div className="flex items-center gap-3 bg-slate-900/30 p-3 rounded-lg border border-slate-700/50 mt-6">
                                 <input type="checkbox" id="isVisible" name="isVisible" checked={formData.isVisible} onChange={handleInputChange} className="h-5 w-5 text-cyan-600 rounded bg-slate-800" />
                                 <label htmlFor="isVisible" className="text-sm text-slate-300 font-medium cursor-pointer">Visible Publicly</label>
+                            </div>
+                        </div>
+
+                        {/* Image Upload */}
+                        <div className="border-t border-slate-700/50 pt-6">
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Timeline Image (Optional)</label>
+                            <div className="flex items-start gap-4">
+                                <div className="relative flex-1 h-32 border-2 border-dashed border-slate-700 rounded-xl hover:border-cyan-500/50 transition-colors bg-slate-900/30 flex flex-col items-center justify-center text-center group">
+                                    <input
+                                        type="file"
+                                        onChange={handleImageChange}
+                                        accept="image/*"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <Upload className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 transition-colors mb-2" />
+                                    <p className="text-xs text-slate-400 group-hover:text-slate-300">
+                                        <span className="font-semibold text-cyan-400">Click to upload</span> or drag and drop
+                                    </p>
+                                </div>
+                                {formData.imagePreview && (
+                                    <div className="h-32 w-32 relative rounded-xl overflow-hidden border border-slate-700 shadow-lg shrink-0">
+                                        <img src={formData.imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, image: null, imagePreview: '' }))}
+                                            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity z-20"
+                                        >
+                                            <X className="h-6 w-6" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

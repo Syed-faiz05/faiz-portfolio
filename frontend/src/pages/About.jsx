@@ -87,6 +87,12 @@ const TimelineNode = ({ item, index }) => {
                         </h4>
                     )}
 
+                    {item.image && (
+                        <div className="mb-4 rounded-xl overflow-hidden shadow-lg border border-slate-700/50">
+                            <img src={item.image} alt={item.title} className="w-full h-auto object-cover max-h-48 hover:scale-105 transition-transform duration-500" />
+                        </div>
+                    )}
+
                     <p className="text-slate-300 text-sm leading-relaxed">
                         {item.description}
                     </p>
