@@ -16,32 +16,36 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key_change_me';
 
 app.use(express.json({ limit: '50mb' }));
 
-// ✅ CONFIGURED CORS
+// server.js
+
+// 1. Updated whitelist to include your specific Vercel URL
 const allowedOrigins = [
-    'https://faiz-portfolio-bcpk13mdw-syedfaiz052004-9082s-projects.vercel.app',
-    'https://faiz-portfolio-sepia.vercel.app', // NEW BACKEND URL ALLOWED (just in case they query themselves)
-    'http://localhost:5173',
-    'http://localhost:5000'
+    "https://faiz-portfolio-pvij.vercel.app",
+    "https://faiz-portfolio-sepia.vercel.app",
+    "http://localhost:5173"
 ];
 
+// 2. Updated CORS middleware
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200
+    origin: allowedOrigins,
+    credentials: true
 }));
 
-// Enable pre-flight requests for all routes
-app.options('*', cors());
+// 3. Handle Preflight Properly
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    );
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+    }
+
+    next();
+});
 
 // -----------------------------
 // 2️⃣ DATABASE CONNECTION
