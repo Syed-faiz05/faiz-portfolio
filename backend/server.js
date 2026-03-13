@@ -21,6 +21,7 @@ app.use(express.json({ limit: '50mb' }));
 // 1. Updated whitelist to include your specific Vercel URL
 const allowedOrigins = [
     "https://faiz-portfolio-pvij.vercel.app",
+    "https://faiz-portfolio-pvij-git-main-syedfaiz052004-9082s-projects.vercel.app",
     "https://faiz-portfolio-sepia.vercel.app",
     "http://localhost:5173"
 ];
