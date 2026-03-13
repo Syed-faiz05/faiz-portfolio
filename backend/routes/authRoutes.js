@@ -1,26 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const Admin = require('../models/Admin'); // Import the model
+const jwt = require('jsonwebtoken');
 const { protect } = require('../middleware/authMiddleware');
 
-const jwt = require('jsonwebtoken');
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'secret_fallback_key_123', {
-        expiresIn: '30d',
-    });
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// @route   POST /api/auth/login
 // @desc    Auth admin & get token
+// @route   POST /api/auth/login
 router.post('/login', async (req, res) => {
-    console.log('Login attempt:', req.body.username);
     const { username, password } = req.body;
 
     try {
-        if (username === 'faiz' && password === '1234faiz') {
+        // Find admin by username in MongoDB
+        const admin = await Admin.findOne({ username });
+
+        // Check if admin exists AND password matches (hashed)
+        if (admin && (await admin.matchPassword(password))) {
             res.json({
-                _id: 'admin_123',
-                username: 'faiz',
-                token: generateToken('admin_123'),
+                _id: admin._id,
+                username: admin.username,
+                token: generateToken(admin._id),
             });
         } else {
             res.status(401).json({ message: 'Invalid username or password' });
@@ -30,19 +32,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// @route   POST /api/auth/profile
-// @desc    Update Admin Profile (Username/Password)
-router.put('/profile', protect, async (req, res) => {
-    // We'll skip profile updating in this simple setup
-    res.json({
-        _id: 'admin_123',
-        username: 'faiz',
-        token: generateToken('admin_123'),
-    });
-});
-
-// @route    GET /api/auth/me
-// @desc     Get current admin
 router.get('/me', protect, async (req, res) => {
     res.json(req.admin);
 });

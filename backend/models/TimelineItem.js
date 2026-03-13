@@ -31,6 +31,9 @@ const timelineItemSchema = new mongoose.Schema({
     icon: {
         type: String, // standardized icon name or visual helper
         default: 'briefcase'
+    },
+    image: {
+        type: String // Optional Base64 image
     }
 }, { timestamps: true });
 
