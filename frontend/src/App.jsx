@@ -7,6 +7,10 @@ import About from './pages/About';
 import SkillsPage from './pages/SkillsPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ContactPage from './pages/ContactPage';
+import AchievementsPage from './pages/Achievements';
+import BlogsPage from './pages/Blogs';
+import BlogPostPage from './pages/BlogPost';
+import ScrollToTop from './components/ScrollToTop';
 
 // Admin
 
@@ -15,7 +19,8 @@ import Dashboard from './admin/pages/Dashboard';
 import ProjectManager from './admin/pages/ProjectManager';
 import AboutManager from './admin/pages/AboutManager';
 import SkillManager from './admin/pages/SkillManager';
-import Achievements from './admin/pages/Achievements';
+// Achievements map to AboutManager for timeline items currently
+// Or we can just reuse AboutManager for achievements. Let's redirect or use AboutManager.
 import Blog from './admin/pages/Blog';
 import Messages from './admin/pages/Messages';
 import Settings from './admin/pages/Settings';
@@ -27,6 +32,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <Toaster position="bottom-right" />
         <Routes>
           {/* Admin Routes */}
@@ -38,7 +44,7 @@ function App() {
             <Route path="projects" element={<ProjectManager />} />
             <Route path="about" element={<AboutManager />} />
             <Route path="skills" element={<SkillManager />} />
-            <Route path="achievements" element={<Achievements />} />
+            <Route path="achievements" element={<AboutManager />} />
             <Route path="blog" element={<Blog />} />
             <Route path="messages" element={<Messages />} />
             <Route path="settings" element={<Settings />} />
@@ -61,6 +67,9 @@ const MainLayout = () => (
       <Route path="/about" element={<About />} />
       <Route path="/skills" element={<SkillsPage />} />
       <Route path="/projects" element={<ProjectsPage />} />
+      <Route path="/achievements" element={<AchievementsPage />} />
+      <Route path="/blogs" element={<BlogsPage />} />
+      <Route path="/blogs/:slug" element={<BlogPostPage />} />
       <Route path="/contact" element={<ContactPage />} />
     </Routes>
     <Footer />

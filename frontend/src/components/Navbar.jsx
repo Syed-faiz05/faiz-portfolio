@@ -12,6 +12,8 @@ const Navbar = () => {
         { name: 'About', to: '/about' },
         { name: 'Skills', to: '/skills' },
         { name: 'Projects', to: '/projects' },
+        { name: 'Achievements', to: '/achievements' },
+        { name: 'Blogs', to: '/blogs' },
         { name: 'Contact', to: '/contact' },
         { name: 'Admin', to: '/admin' }
     ];

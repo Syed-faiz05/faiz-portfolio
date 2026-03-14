@@ -1,47 +1,41 @@
 import { useState, useEffect } from 'react';
-import CalendarHeatmap from 'react-calendar-heatmap';
-import 'react-calendar-heatmap/dist/styles.css';
-import './LeetCodeActivity.css';
+import { motion } from 'framer-motion';
+import { Terminal, Database, ShieldAlert, Cpu } from 'lucide-react';
+import TerminalText from './TerminalText';
 import API_URL from '../config';
 
 const LeetCodeActivity = ({ username }) => {
-    const [activityData, setActivityData] = useState([]);
-    const [totalSubmissions, setTotalSubmissions] = useState(0);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    
+    
 
     useEffect(() => {
         const fetchLeetCodeData = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/leetcode/${username}`);
+                const res = await fetch(`${API_URL}/api/leetcode/${username}?t=${Date.now()}`);
+                const data = res.ok ? await res.json() : null;
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch LeetCode data');
+                if (data && data.status === "success") {
+                    setStats({
+                        totalSolved: data.totalSolved,
+                        totalQuestions: data.totalQuestions,
+                        easySolved: data.easySolved,
+                        totalEasy: data.totalEasy,
+                        mediumSolved: data.mediumSolved,
+                        totalMedium: data.totalMedium,
+                        hardSolved: data.hardSolved,
+                        totalHard: data.totalHard,
+                        acceptanceRate: data.acceptanceRate,
+                        ranking: data.ranking,
+                        contributionPoints: data.contributionPoints,
+                        streak: data.streak,
+                        contestRating: data.contestRating
+                    });
                 }
-
-                const data = await response.json();
-
-                if (data.errors) {
-                    throw new Error(data.errors[0].message);
-                }
-
-                if (data.data?.matchedUser?.userCalendar) {
-                    const calendar = JSON.parse(data.data.matchedUser.userCalendar.submissionCalendar);
-
-                    // Transform data for react-calendar-heatmap
-                    const transformedData = Object.entries(calendar).map(([timestamp, count]) => ({
-                        date: new Date(parseInt(timestamp) * 1000),
-                        count: count
-                    }));
-
-                    setActivityData(transformedData);
-                    setTotalSubmissions(Object.values(calendar).reduce((a, b) => a + b, 0));
-                }
-
-                setLoading(false);
             } catch (error) {
-                console.error('Error fetching LeetCode data:', error);
-                setError(error.message);
+                console.error("Error fetching LeetCode data:", error);
+            } finally {
                 setLoading(false);
             }
         };
@@ -49,112 +43,158 @@ const LeetCodeActivity = ({ username }) => {
         fetchLeetCodeData();
     }, [username]);
 
-    const getClassForValue = (value) => {
-        if (!value) {
-            return 'color-empty';
-        }
-        if (value.count < 3) {
-            return 'color-github-1';
-        }
-        if (value.count < 6) {
-            return 'color-github-2';
-        }
-        if (value.count < 10) {
-            return 'color-github-3';
-        }
-        return 'color-github-4';
-    };
-
     if (loading) {
         return (
-            <div className="leetcode-container">
-                <div className="flex items-center justify-center h-24">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-400"></div>
-                    <span className="ml-2 text-sm text-gray-400">Loading LeetCode activity...</span>
-                </div>
+            <div className="w-full h-[500px] bg-black border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.1)] flex flex-col items-center justify-center font-mono">
+                <Terminal size={48} className="text-amber-500 animate-pulse mb-4" />
+                <p className="text-amber-500 text-sm tracking-widest uppercase">INITIALIZING LEETCODE_UPLINK...</p>
             </div>
         );
     }
 
-    if (error) {
+    if (!stats) {
         return (
-            <div className="leetcode-container">
-                <div className="text-center py-6">
-                    <p className="text-orange-400 text-sm mb-2">⚠️ Backend server needed</p>
-                    <p className="text-xs text-gray-500 mb-4">Start: <code className="bg-slate-800 px-2 py-1 rounded">cd backend && node server.js</code></p>
-                    <a
-                        href={`https://leetcode.com/${username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="view-profile-btn inline-block"
-                    >
-                        View LeetCode Profile →
-                    </a>
-                </div>
+            <div className="w-full h-[500px] bg-black border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)] flex flex-col items-center justify-center font-mono p-6">
+                <ShieldAlert size={48} className="text-red-500 animate-pulse mb-4" />
+                <p className="text-red-500 text-sm tracking-widest uppercase text-center">ERR_CONNECTION_REFUSED: LEETCODE MAINFRAME UNREACHABLE.</p>
             </div>
         );
     }
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setFullYear(startDate.getFullYear() - 1);
+    // Helper to generate the discrete capacity blocks `████░░░`
+    const generateCapacityBar = (solved, total, maxBlocks = 20) => {
+        if (!total) return '░'.repeat(maxBlocks);
+        const percentage = solved / total;
+        const filledBlocks = Math.round(percentage * maxBlocks);
+        const emptyBlocks = maxBlocks - filledBlocks;
+        return '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+    };
+
+    const DifficultyMeter = ({ label, solved, total, delay }) => (
+        <div className="mb-4 group/meter">
+            <div className="flex justify-between text-xs mb-1 font-mono uppercase tracking-widest">
+                <span className="text-amber-500">{">"} {label}</span>
+                <span className="text-amber-600">[{solved}/{total}]</span>
+            </div>
+            <div className="text-amber-500 text-sm tracking-widest whitespace-nowrap overflow-hidden">
+                <motion.span
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }} viewport={{ once: true, margin: '-20px' }}
+                    transition={{ duration: 0.5, delay }}
+                >
+                    [{generateCapacityBar(solved, total)}]
+                </motion.span>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="leetcode-container">
-            <div className="leetcode-header">
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#fff', margin: 0 }}>
-                    LeetCode Activity
-                </h2>
-                <div className="header-actions">
-                    <span>{totalSubmissions} submissions in the past year</span>
-                    <a
-                        href={`https://leetcode.com/${username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="view-profile-btn"
+        <div  className="w-full bg-black border border-amber-500/40 shadow-[0_0_40px_rgba(245,158,11,0.15)] relative group font-mono h-full flex flex-col">
+            
+            {/* Terminal Top Bar */}
+            <div className="h-8 bg-amber-950/20 border-b border-amber-500/40 flex items-center px-4 justify-between">
+                <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-600/50 border border-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-600/50 border border-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-amber-600 border border-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                </div>
+                <div className="text-[10px] text-amber-600 font-bold uppercase tracking-widest">root@{username}:~/leetcode</div>
+            </div>
+
+            <div className="p-6 md:p-8 relative z-10 flex-1 flex flex-col">
+                {/* Header Phase */}
+                <div className="mb-8 border-b border-amber-500/20 pb-4">
+                    <div className="flex items-center gap-3">
+                        <Terminal size={24} className="text-amber-500 animate-pulse" />
+                        <h3 className="text-xl font-bold text-amber-400 tracking-tight uppercase">
+                            <TerminalText text="LEETCODE_CORE_SYSTEM" delay={0.2} />
+                        </h3>
+                    </div>
+                    <div className="mt-2 text-amber-700 text-xs uppercase tracking-widest shadow-none">
+                        SESSION_ID: {Math.random().toString(36).substring(7).toUpperCase()}-{Date.now().toString().slice(-4)}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
+                    {/* Left Column: Difficulty Meters */}
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }} viewport={{ once: true, margin: '-20px' }}
+                        transition={{ duration: 0.8, delay: 0.3 }}
+                        className="flex flex-col justify-center border border-amber-500/20 p-6 bg-black relative"
                     >
-                        View Profile →
-                    </a>
-                </div>
-            </div>
+                        <div className="absolute top-0 left-0 px-2 py-0.5 bg-amber-900/40 text-amber-500 text-[10px] border-b border-r border-amber-500/20 uppercase">
+                            ~/difficulty_dist.log
+                        </div>
+                        
+                        <div className="mt-4">
+                            <DifficultyMeter label="EASY_THREAD" solved={stats.easySolved} total={stats.totalEasy} delay={0.4} />
+                            <DifficultyMeter label="MED_PROCESS" solved={stats.mediumSolved} total={stats.totalMedium} delay={0.6} />
+                            <DifficultyMeter label="HARD_DAEMON" solved={stats.hardSolved} total={stats.totalHard} delay={0.8} />
+                        </div>
+                    </motion.div>
 
-            <div className="heatmap-wrapper">
-                <CalendarHeatmap
-                    startDate={startDate}
-                    endDate={endDate}
-                    values={activityData}
-                    classForValue={getClassForValue}
-                    tooltipDataAttrs={(value) => {
-                        if (!value || !value.date) {
-                            return {};
-                        }
-                        return {
-                            'data-tip': `${value.count || 0} submissions on ${value.date.toLocaleDateString()}`
-                        };
-                    }}
-                    showWeekdayLabels={true}
-                    gutterSize={3}
-                />
-            </div>
+                    {/* Right Column: Terminal Stats */}
+                    <div className="grid grid-rows-3 gap-4">
+                        <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-20px' }}
+                            transition={{ duration: 0.4, delay: 0.5 }}
+                            className="border border-amber-500/30 p-4 bg-black/50 hover:border-amber-400 hover:bg-amber-950/20 transition-all duration-300 group flex flex-col justify-center"
+                        >
+                            <span className="text-amber-600 text-xs uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Database size={12} className="text-amber-500" /> SYS_RANKING (GLOBAL)
+                            </span>
+                            <div className="text-3xl font-bold text-amber-400 tracking-tight">
+                                <TerminalText text={stats.ranking} delay={0.6} />
+                            </div>
+                        </motion.div>
 
-            {/* Legend */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginTop: '16px',
-                fontSize: '0.75rem',
-                color: '#888'
-            }}>
-                <span>Less</span>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#1f2937' }}></div>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#0e4429' }}></div>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#26a641' }}></div>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#39d353' }}></div>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: '#4ade80' }}></div>
+                        <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-20px' }}
+                            transition={{ duration: 0.4, delay: 0.7 }}
+                            className="border border-orange-500/30 p-4 bg-black/50 hover:border-orange-400 hover:bg-orange-950/20 transition-all duration-300 group flex flex-col justify-center"
+                        >
+                            <span className="text-orange-600 text-xs uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Cpu size={12} className="text-orange-500" /> ACCEPTANCE_RATE
+                            </span>
+                            <div className="text-3xl font-bold text-orange-400 tracking-tight">
+                                <TerminalText text={stats.acceptanceRate} delay={0.8} />%
+                            </div>
+                        </motion.div>
+
+                        <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-20px' }}
+                            transition={{ duration: 0.4, delay: 0.9 }}
+                            className="border border-yellow-500/30 p-4 bg-black/50 hover:border-yellow-400 hover:bg-yellow-950/20 transition-all duration-300 group flex flex-col justify-center relative overflow-hidden"
+                        >
+                            <div className="absolute inset-0 bg-yellow-500/5 animate-pulse"></div>
+                            <span className="text-yellow-600 text-xs uppercase tracking-widest mb-1 relative z-10 flex items-center gap-2">
+                                <Terminal size={12} className="text-yellow-500" /> CONTEST_RATING
+                            </span>
+                            <div className="text-2xl font-bold text-yellow-400 tracking-tight relative z-10">
+                                {stats.contestRating ? <TerminalText text={stats.contestRating} delay={1.0} /> : <span className="text-yellow-600/50">UNRATED</span>}
+                            </div>
+                        </motion.div>
+                    </div>
                 </div>
-                <span>More</span>
+
+                {/* System Process Footer (Streak) */}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }} viewport={{ once: true, margin: '-20px' }}
+                    transition={{ duration: 0.5, delay: 1.0 }}
+                    className="mt-8 pt-4 border-t-2 border-dashed border-amber-500/30 flex flex-col items-center justify-center w-full"
+                >
+                    <div className="text-xs text-amber-600 uppercase mb-2">~ executing script: streak_monitor.sh</div>
+                    <div className="px-6 py-2 bg-amber-950/30 border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                        <span className="text-amber-400 font-bold tracking-widest uppercase text-sm sm:text-base">
+                            {">"} SYSTEM_STATUS: <span className="text-white animate-pulse">ACTIVE</span> | DSA_STREAK == <TerminalText text={stats.streak || 0} delay={1.2} /> DAYS
+                        </span>
+                    </div>
+                </motion.div>
             </div>
         </div>
     );

@@ -1,30 +1,29 @@
-
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { MessageSquare, Star, Trash2, Search, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Trash2, Mail, MailOpen, Star, Clock, User, Reply, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import API_URL from '../../config';
 
 const Messages = () => {
-    const { user } = useAuth();
+    const { token } = useAuth();
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchMessages();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchMessages = async () => {
         try {
             const res = await fetch(`${API_URL}/api/messages`, {
-                headers: { Authorization: `Bearer ${user.token}` }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error('Failed to load messages');
-            const data = await res.json();
-            setMessages(data);
+            if (res.ok) {
+                const data = await res.json();
+                setMessages(data);
+            }
         } catch (error) {
             toast.error('Failed to load messages');
         } finally {
@@ -32,173 +31,172 @@ const Messages = () => {
         }
     };
 
-    const toggleRead = async (id, currentStatus) => {
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this message?')) return;
+
         try {
             const res = await fetch(`${API_URL}/api/messages/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                toast.success('Message deleted');
+                fetchMessages();
+            } else {
+                toast.error('Error deleting message');
+            }
+        } catch (error) {
+            toast.error('Network error');
+        }
+    };
+
+    const toggleReadStatus = async (msg) => {
+        try {
+            const res = await fetch(`${API_URL}/api/messages/${msg._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`
+                    Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ read: !currentStatus })
+                body: JSON.stringify({ read: !msg.read })
             });
-            if (!res.ok) throw new Error('Failed to update status');
 
-            setMessages(messages.map(msg =>
-                msg._id === id ? { ...msg, read: !msg.read } : msg
-            ));
+            if (res.ok) {
+                fetchMessages();
+            }
         } catch (error) {
             toast.error('Failed to update status');
         }
     };
 
-    const toggleStar = async (id, currentStatus) => {
+    const toggleStar = async (msg) => {
         try {
-            const res = await fetch(`${API_URL}/api/messages/${id}`, {
+            const res = await fetch(`${API_URL}/api/messages/${msg._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${user.token}`
+                    Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ starred: !currentStatus })
+                body: JSON.stringify({ starred: !msg.starred })
             });
-            if (!res.ok) throw new Error('Failed to update star');
 
-            setMessages(messages.map(msg =>
-                msg._id === id ? { ...msg, starred: !msg.starred } : msg
-            ));
+            if (res.ok) {
+                fetchMessages();
+            }
         } catch (error) {
-            toast.error('Failed to update star');
+            toast.error('Failed to update status');
         }
     };
 
-    const deleteMessage = async (id) => {
-        if (!window.confirm('Delete this message?')) return;
-        try {
-            const res = await fetch(`${API_URL}/api/messages/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${user.token}` }
-            });
-            if (!res.ok) throw new Error('Failed to delete');
-
-            setMessages(messages.filter(msg => msg._id !== id));
-            toast.success('Message deleted');
-        } catch (error) {
-            toast.error('Failed to delete');
-        }
-    };
-
-    const filteredMessages = messages.filter(msg => {
-        const matchesSearch = msg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            msg.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            msg.message.toLowerCase().includes(searchTerm.toLowerCase());
-
-        if (!matchesSearch) return false;
-
-        if (filter === 'unread') return !msg.read;
-        if (filter === 'starred') return msg.starred;
-        return true;
-    });
-
-    if (loading) {
-        return (
-            <div className="flex h-96 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
-            </div>
-        );
-    }
+    const filteredMessages = messages.filter(m => 
+        m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-100">Messages</h2>
-                    <p className="text-slate-400 mt-1">Check your inbox for new opportunities</p>
-                </div>
-
-                <div className="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
-                    {['all', 'unread', 'starred'].map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize ${filter === f ? 'bg-slate-700 text-cyan-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            {f}
-                        </button>
-                    ))}
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <Mail className="text-cyan-400" />
+                        Inbox
+                    </h1>
+                    <p className="text-slate-400 mt-1">Manage messages from your portfolio contact form</p>
                 </div>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden shadow-xl">
-                {/* Search Bar */}
-                <div className="p-4 border-b border-slate-700/50 flex items-center gap-3">
-                    <Search className="h-5 w-5 text-slate-500" />
-                    <input
-                        type="text"
-                        placeholder="Search messages..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-transparent border-none focus:ring-0 text-slate-200 placeholder-slate-500 w-full"
-                    />
-                </div>
+            {/* Search */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+                <Search className="text-slate-400" size={20} />
+                <input
+                    type="text"
+                    placeholder="Search messages by name, email, or subject..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-transparent border-none text-white focus:outline-none w-full placeholder-slate-500"
+                />
+            </div>
 
-                {/* Message List */}
-                <div className="divide-y divide-slate-700/50">
-                    {filteredMessages.map((msg) => (
-                        <div
-                            key={msg._id}
-                            className={`group flex items-start gap-4 p-5 hover:bg-slate-800/80 transition-colors cursor-pointer ${!msg.read ? 'bg-cyan-900/10' : ''}`}
-                        >
-                            {/* Actions */}
-                            <div className="flex flex-col gap-2 mt-1">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); toggleStar(msg._id, msg.starred); }}
-                                    className={`text-slate-500 hover:text-yellow-400 transition-colors ${msg.starred ? 'text-yellow-400' : ''}`}
-                                >
-                                    <Star className="h-5 w-5 fill-current" />
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); toggleRead(msg._id, msg.read); }}
-                                    className={`text-slate-500 hover:text-cyan-400 transition-colors`}
-                                    title={msg.read ? "Mark as unread" : "Mark as read"}
-                                >
-                                    <div className={`h-4 w-4 rounded-full border-2 border-slate-400 ${!msg.read ? 'bg-cyan-400 border-cyan-400' : ''}`}></div>
-                                </button>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className={`text-base truncate ${!msg.read ? 'font-bold text-white' : 'font-medium text-slate-300'}`}>
-                                            {msg.name}
-                                        </h4>
-                                        <span className="text-xs text-slate-500">&lt;{msg.email}&gt;</span>
-                                    </div>
-                                    <span className="text-xs text-slate-500 whitespace-nowrap ml-2">
-                                        {new Date(msg.createdAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-cyan-400/80 font-medium mb-1 truncate">{msg.subject}</p>
-                                <p className="text-sm text-slate-400 line-clamp-2">{msg.message}</p>
-                            </div>
-
-                            {/* Delete Action (Hover) */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); deleteMessage(msg._id); }}
-                                className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-red-400 hover:bg-slate-700 rounded-full transition-all"
+            {/* Message List */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                {loading ? (
+                    <div className="p-8 text-center text-slate-400">Loading messages...</div>
+                ) : filteredMessages.length === 0 ? (
+                    <div className="p-12 text-center flex flex-col items-center">
+                        <MailOpen className="w-16 h-16 text-slate-600 mb-4" />
+                        <h3 className="text-xl font-medium text-slate-300">Your inbox is empty</h3>
+                        <p className="text-slate-500 mt-2">No messages match your search criteria.</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-700/50">
+                        {filteredMessages.map((msg) => (
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                key={msg._id} 
+                                className={`p-4 md:p-6 transition-colors hover:bg-slate-700/30 flex flex-col md:flex-row gap-4 items-start ${!msg.read ? 'bg-slate-800/80 border-l-4 border-l-cyan-500' : 'bg-slate-900/20'}`}
                             >
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                        </div>
-                    ))}
-                    {filteredMessages.length === 0 && (
-                        <div className="p-12 text-center text-slate-500">
-                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                            <p>No messages found</p>
-                        </div>
-                    )}
-                </div>
+                                {/* Left actions */}
+                                <div className="flex items-center gap-3 md:pt-1">
+                                    <button onClick={() => toggleStar(msg)} className="text-slate-400 hover:text-yellow-400 transition-colors">
+                                        <Star size={20} className={msg.starred ? 'fill-yellow-400 text-yellow-400' : ''} />
+                                    </button>
+                                    <button onClick={() => toggleReadStatus(msg)} title="Toggle Read" className="text-slate-400 hover:text-cyan-400 transition-colors hidden md:block">
+                                        {!msg.read ? <Mail className="text-cyan-400" size={20} /> : <MailOpen size={20} />}
+                                    </button>
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="flex-1 min-w-0 w-full">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                                        <div className="flex items-center gap-2 font-semibold text-slate-200">
+                                            <User size={16} className="text-slate-500" />
+                                            {msg.name} 
+                                            <span className="text-slate-500 font-normal text-sm hidden sm:inline">&lt;{msg.email}&gt;</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 whitespace-nowrap">
+                                            <Clock size={14} />
+                                            {new Date(msg.createdAt).toLocaleDateString()} at {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </div>
+                                    </div>
+                                    
+                                    <h4 className={`text-base mb-2 ${!msg.read ? 'text-white font-bold' : 'text-slate-300'}`}>
+                                        {msg.subject}
+                                    </h4>
+                                    
+                                    <p className="text-slate-400 text-sm whitespace-pre-wrap font-sans leading-relaxed bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                                        {msg.message}
+                                    </p>
+                                    
+                                    {/* Mobile bottom actions */}
+                                    <div className="mt-4 flex items-center justify-between md:justify-start gap-4">
+                                        <button onClick={() => toggleReadStatus(msg)} className="md:hidden flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-400">
+                                            {!msg.read ? <><Mail size={14}/> Mark Read</> : <><MailOpen size={14}/> Mark Unread</>}
+                                        </button>
+                                        
+                                        <div className="flex items-center gap-3 md:mt-2">
+                                            <a 
+                                                href={`mailto:${msg.email}?subject=Re: ${msg.subject}`}
+                                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                                            >
+                                                <Reply size={14} /> Reply
+                                            </a>
+                                            <button 
+                                                onClick={() => handleDelete(msg._id)}
+                                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                                            >
+                                                <Trash2 size={14} /> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
