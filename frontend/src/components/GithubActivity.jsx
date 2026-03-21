@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Terminal, HardDrive, Cpu, Network, Database } from 'lucide-react';
 import TerminalText from './TerminalText';
@@ -9,9 +9,8 @@ const GithubActivity = ({ username }) => {
     const [languages, setLanguages] = useState([]);
     const [recentCommits, setRecentCommits] = useState([]);
     const [loading, setLoading] = useState(true);
-    
-    // Ref for stagger animation trigger
-    
+    const heatmapScrollRef = useRef(null);
+
 
     useEffect(() => {
         const fetchGithubData = async () => {
@@ -20,8 +19,8 @@ const GithubActivity = ({ username }) => {
                 const userRes = await fetch(`https://api.github.com/users/${username}?t=${Date.now()}`);
                 const userData = userRes.ok ? await userRes.json() : null;
 
-                // 2. Fetch Contributions (Using Jogruber API)
-                const contribRes = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
+                // 2. Fetch Contributions — add cache-bust so stale CDN data is avoided
+                const contribRes = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last&t=${Date.now()}`);
                 const contribData = contribRes.ok ? await contribRes.json() : null;
 
                 // 3. Fetch Repos for accurate native Top Languages
@@ -32,16 +31,32 @@ const GithubActivity = ({ username }) => {
                 let totalCommits = 0;
                 let processedHeatmap = [];
                 if (contribData && contribData.contributions) {
-                    totalCommits = contribData.total[Object.keys(contribData.total)[0]] || 0;
-                    
-                    let currentWeek = [];
-                    contribData.contributions.forEach((day, index) => {
-                        currentWeek.push(day);
-                        if (currentWeek.length === 7 || index === contribData.contributions.length - 1) {
-                            processedHeatmap.push(currentWeek);
-                            currentWeek = [];
+                    // Use the 'lastYear' key directly — the jogruber ?y=last API always returns { lastYear: N }
+                    totalCommits = contribData.total?.lastYear ?? contribData.total?.[Object.keys(contribData.total)[0]] ?? 0;
+
+                    // Trim future dates — the API pads through Dec 31, remove days after today
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const days = contribData.contributions.filter(d => d.date <= todayStr);
+
+                    // Group by real calendar weeks (Sunday = day 0)
+                    const weeks = [];
+                    if (days.length > 0) {
+                        const firstDayOfWeek = new Date(days[0].date).getUTCDay(); // 0=Sun … 6=Sat
+                        let currentWeek = Array(firstDayOfWeek).fill(null); // leading empty slots
+                        for (const day of days) {
+                            currentWeek.push(day);
+                            if (currentWeek.length === 7) {
+                                weeks.push(currentWeek);
+                                currentWeek = [];
+                            }
                         }
-                    });
+                        if (currentWeek.length > 0) {
+                            // Pad end of last (partial) week with nulls to keep grid shape
+                            while (currentWeek.length < 7) currentWeek.push(null);
+                            weeks.push(currentWeek);
+                        }
+                    }
+                    processedHeatmap = weeks;
                 }
 
                 // Process Languages natively
@@ -103,6 +118,19 @@ const GithubActivity = ({ username }) => {
 
         fetchGithubData();
     }, [username]);
+
+    // Auto-scroll heatmap to the right (today's column) once data is loaded.
+    // Use setTimeout so the DOM has a chance to paint the full inner div width.
+    useEffect(() => {
+        if (!loading && heatmapScrollRef.current) {
+            const el = heatmapScrollRef.current;
+            // Defer one frame so the browser measures the real scrollWidth
+            const raf = requestAnimationFrame(() => {
+                el.scrollLeft = el.scrollWidth - el.clientWidth;
+            });
+            return () => cancelAnimationFrame(raf);
+        }
+    }, [loading, heatmap]);
 
     // Matrix block colors mapping
     const getHeatmapColor = (count) => {
@@ -183,7 +211,7 @@ const GithubActivity = ({ username }) => {
                             ~/heat_signature.log
                         </div>
                         
-                        <div className="mt-4 overflow-x-auto pb-4 terminal-scroll">
+                        <div ref={heatmapScrollRef} className="mt-4 overflow-x-auto pb-4 terminal-scroll">
                             <div className="flex gap-[2px] min-w-max">
                                 {heatmap.map((week, wIndex) => (
                                     <motion.div 
@@ -193,7 +221,11 @@ const GithubActivity = ({ username }) => {
                                         whileInView={{ opacity: 1 }} viewport={{ once: true, margin: '-20px' }}
                                         transition={{ duration: 0.1, delay: 0.5 + (wIndex * 0.01) }}
                                     >
-                                        {week.map((day) => {
+                                        {week.map((day, dIndex) => {
+                                            // day can be null for padding slots
+                                            if (!day) {
+                                                return <div key={`pad-${wIndex}-${dIndex}`} className="w-3.5 h-3.5" />;
+                                            }
                                             const count = day.count || 0;
                                             const colorClass = getHeatmapColor(count);
                                             let dateLabel = '-';

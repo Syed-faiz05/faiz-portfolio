@@ -6,6 +6,9 @@ import { Plus, Trash2, Edit2, ExternalLink, Github, X, Image as ImageIcon, Video
 import toast from 'react-hot-toast';
 import API_URL from '../../config';
 
+// Predefined project categories (stored as tags)
+const PROJECT_CATEGORIES = ['Web', 'Mobile', 'AI', 'ML', 'Backend', 'API', 'Design', 'Game', 'Tool'];
+
 const ProjectManager = () => {
     const { user, logout } = useAuth();
     const [projects, setProjects] = useState([]);
@@ -20,10 +23,10 @@ const ProjectManager = () => {
         description: '',
         technologies: '',
         tags: '',
+        categories: [], // New: category checkboxes
         githubLink: '',
         liveLink: '',
-        image: null, // File object
-        imagePreview: '', // URL for preview
+        images: [],
         status: 'Published',
         featured: false
     });
@@ -52,36 +55,58 @@ const ProjectManager = () => {
         }));
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
+    const handleCategoryToggle = (cat) => {
+        setFormData(prev => ({
+            ...prev,
+            categories: prev.categories.includes(cat)
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat]
+        }));
+    };
+
+    const handleImageChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const validFiles = files.filter(file => {
             if (file.size > 5 * 1024 * 1024) {
-                toast.error('Image size must be less than 5MB');
-                return;
+                toast.error(`Image ${file.name} is larger than 5MB`);
+                return false;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({
-                    ...prev,
-                    image: reader.result,
-                    imagePreview: reader.result
-                }));
-            };
-            reader.readAsDataURL(file);
-        }
+            return true;
+        });
+
+        const readFiles = validFiles.map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        });
+
+        const newBase64Images = await Promise.all(readFiles);
+
+        setFormData(prev => ({
+            ...prev,
+            images: [...(prev.images || []), ...newBase64Images]
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setUploading(true);
 
-        // Format tags and technologies as arrays
+        // Merge categories into tags
+        const categoryTags = formData.categories || [];
+        const extraTags = formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const allTags = [...new Set([...categoryTags, ...extraTags])];
+
         const payload = {
             ...formData,
-            tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+            tags: allTags,
             technologies: formData.technologies ? formData.technologies.split(',').map(t => t.trim()).filter(Boolean) : [],
-            images: formData.image ? [formData.image] : [], // Wrap single image in array for backend compatibility
-            thumbnail: formData.image // Also set as thumbnail
+            images: formData.images || [],
+            thumbnail: (formData.images && formData.images.length > 0) ? formData.images[0] : null
         };
 
         try {
@@ -141,15 +166,23 @@ const ProjectManager = () => {
     const handleEdit = (project) => {
         setIsEditing(true);
         setCurrentId(project._id);
+        // Separate known categories from custom tags
+        const tags = project.tags || [];
+        const knownCats = tags.filter(t => PROJECT_CATEGORIES.includes(t));
+        const customTags = tags.filter(t => !PROJECT_CATEGORIES.includes(t));
+        const projectImages = project.images && project.images.length > 0 
+            ? project.images 
+            : (project.image || project.thumbnail ? [project.image || project.thumbnail] : []);
+
         setFormData({
             title: project.title,
             description: project.description,
             technologies: project.technologies ? project.technologies.join(', ') : '',
-            tags: project.tags ? project.tags.join(', ') : '',
+            tags: customTags.join(', '),
+            categories: knownCats,
             githubLink: project.githubLink || '',
             liveLink: project.liveLink || '',
-            image: null,
-            imagePreview: project.image || project.thumbnail || '',
+            images: projectImages,
             status: project.status || 'Published',
             featured: project.featured || false
         });
@@ -161,7 +194,8 @@ const ProjectManager = () => {
         setCurrentId(null);
         setFormData({
             title: '', description: '', technologies: '', tags: '',
-            githubLink: '', liveLink: '', image: null, imagePreview: '',
+            categories: [],
+            githubLink: '', liveLink: '', images: [],
             status: 'Published', featured: false
         });
     };
@@ -211,8 +245,27 @@ const ProjectManager = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Input label="Tags (comma separated)" name="tags" value={formData.tags} onChange={handleInputChange} placeholder="Web, Mobile, AI" />
-                            <Input label="Technologies (comma separated)" name="technologies" value={formData.technologies} onChange={handleInputChange} placeholder="React, Node.js, MongoDB" />
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Category / Type</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {PROJECT_CATEGORIES.map(cat => (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => handleCategoryToggle(cat)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                                                formData.categories.includes(cat)
+                                                    ? 'bg-cyan-600 text-white border-cyan-500 shadow-lg shadow-cyan-500/20'
+                                                    : 'bg-slate-800 text-slate-400 border-slate-700/50 hover:text-white hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[11px] text-slate-600 mt-1.5">Categories power the filter tabs on the Projects page.</p>
+                            </div>
+                            <Input label="Extra Tags (comma separated)" name="tags" value={formData.tags} onChange={handleInputChange} placeholder="e.g. OpenSource, Portfolio" />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -227,31 +280,45 @@ const ProjectManager = () => {
 
                         {/* Image Upload */}
                         <div className="border-t border-slate-700/50 pt-6">
-                            <label className="block text-sm font-medium text-slate-400 mb-2">Project Image (Cloudinary)</label>
-                            <div className="flex items-start gap-4">
-                                <div className="relative flex-1 h-32 border-2 border-dashed border-slate-700 rounded-xl hover:border-cyan-500/50 transition-colors bg-slate-900/30 flex flex-col items-center justify-center text-center group">
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Project Images (Cloudinary)</label>
+                            <div className="flex flex-col gap-4">
+                                <div className="relative h-32 border-2 border-dashed border-slate-700 rounded-xl hover:border-cyan-500/50 transition-colors bg-slate-900/30 flex flex-col items-center justify-center text-center group">
                                     <input
                                         type="file"
+                                        multiple
                                         onChange={handleImageChange}
                                         accept="image/*"
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
                                     <Upload className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 transition-colors mb-2" />
                                     <p className="text-xs text-slate-400 group-hover:text-slate-300">
-                                        <span className="font-semibold text-cyan-400">Click to upload</span> or drag and drop
+                                        <span className="font-semibold text-cyan-400">Click to upload</span> or drag and drop multiple images
                                     </p>
                                     <p className="text-[10px] text-slate-600 mt-1">First image will be used as thumbnail</p>
                                 </div>
-                                {formData.imagePreview && (
-                                    <div className="h-32 w-32 relative rounded-xl overflow-hidden border border-slate-700 shadow-lg shrink-0">
-                                        <img src={formData.imagePreview} alt="Preview" className="h-full w-full object-cover" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, image: null, imagePreview: '' }))}
-                                            className="absolute inset-0 bg-black/50 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity z-20"
-                                        >
-                                            <X className="h-6 w-6" />
-                                        </button>
+                                {formData.images && formData.images.length > 0 && (
+                                    <div className="flex flex-wrap gap-4 mt-2">
+                                        {formData.images.map((img, index) => (
+                                            <div key={index} className="h-24 w-24 relative rounded-xl overflow-hidden border border-slate-700 shadow-lg shrink-0 group/img">
+                                                <img src={img} alt={`Preview ${index}`} className="h-full w-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        images: prev.images.filter((_, i) => i !== index)
+                                                    }))}
+                                                    className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white opacity-0 group-hover/img:opacity-100 transition-opacity z-20"
+                                                >
+                                                    <Trash2 className="h-5 w-5 mb-1 text-red-400" />
+                                                    <span className="text-[10px] font-bold text-red-400">Remove</span>
+                                                </button>
+                                                {index === 0 && (
+                                                    <div className="absolute top-0 left-0 bg-cyan-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg z-10">
+                                                        THUMBNAIL
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
